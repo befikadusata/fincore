@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fincore_db
+    environment:
+      - POSTGRES_DB=fincore
+      - POSTGRES_USER=fincore
+      - POSTGRES_PASSWORD=fincore
+    ports:
+      - "${HOST_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: fincore_redis
+    ports:
+      - "${HOST_REDIS_PORT:-6379}:6379"
+
+  django:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: fincore_django
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ../backend:/app
+      - static_data:/app/staticfiles
+    ports:
+      - "${HOST_DJANGO_PORT:-8000}:8000"
+    env_file:
+      - ../.env
+    depends_on:
+      - db
+      - redis
+
+  celery_worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: fincore_celery_worker
+    command: celery -A config worker -l info
+    volumes:
+      - ../backend:/app
+    env_file:
+      - ../.env
+    depends_on:
+      - django
+      - redis
+
+  celery_beat:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: fincore_celery_beat
+    command: celery -A config beat -l info
+    volumes:
+      - ../backend:/app
+    env_file:
+      - ../.env
+    depends_on:
+      - django
+      - redis
+
+volumes:
+  pgdata:
+  static_data:

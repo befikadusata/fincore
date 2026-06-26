@@ -1,0 +1,4 @@
+-r base.txt
+black>=24.0,<25.0
+flake8>=7.0,<7.1
+ipython>=8.20,<8.21
