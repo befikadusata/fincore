@@ -12,5 +12,6 @@ router.register(r'roles', RoleViewSet, basename='role')
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/register/', AuthViewSet.as_view({'post': 'register'}), name='register'),
+    path('auth/logout/', AuthViewSet.as_view({'post': 'logout'}), name='logout'),
     path('auth/me/', AuthViewSet.as_view({'get': 'me', 'patch': 'me'}), name='me'),
 ]

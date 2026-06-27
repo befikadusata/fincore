@@ -1,3 +1,6 @@
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework import serializers as drf_serializers
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -6,12 +9,13 @@ from apps.saas.models import Tenant, User, Membership, Role, Permission, RolePer
 from apps.saas.api.v1.serializers import (
     TenantSerializer, UserSerializer, MembershipSerializer,
     RoleSerializer, PermissionSerializer, SwitchTenantSerializer,
-    AssignPermissionsSerializer,
+    AssignPermissionsSerializer, RegisterSerializer,
 )
 from apps.saas.services.tenant import TenantService
 from apps.saas.services.membership import MembershipService
 from apps.saas.services.rbac import RBACService
 from core.permissions import IsTenantMember, HasPermission
+from core.throttles import AuthAnonThrottle
 
 
 class TenantViewSet(viewsets.ModelViewSet):
@@ -133,23 +137,53 @@ class RoleViewSet(viewsets.ModelViewSet):
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
-    @action(detail=False, methods=['post'])
-    def register(self, request):
-        email = request.data.get('email')
-        password = request.data.get('password')
-        first_name = request.data.get('first_name', '')
-        last_name = request.data.get('last_name', '')
+    def get_permissions(self):
+        if self.action in ('logout', 'me'):
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
-        if User.objects.filter(email=email).exists():
+    @action(detail=False, methods=['post'], throttle_classes=[AuthAnonThrottle])
+    def register(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            validate_password(data['password'])
+        except DjangoValidationError as exc:
+            raise drf_serializers.ValidationError({'password': list(exc.messages)})
+
+        if User.objects.filter(email=data['email']).exists():
             return Response(
                 {"error": "User already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         user = User.objects.create_user(
-            email=email, password=password,
-            first_name=first_name, last_name=last_name,
+            email=data['email'],
+            password=data['password'],
+            first_name=data.get('first_name', ''),
+            last_name=data.get('last_name', ''),
         )
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'],
+            permission_classes=[permissions.IsAuthenticated])
+    def logout(self, request):
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response(
+                {'error': 'Refresh token required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except Exception:
+            return Response(
+                {'error': 'Invalid or already invalidated token.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get', 'patch'],
             permission_classes=[permissions.IsAuthenticated])

@@ -92,6 +92,23 @@ class LoanSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
 
+    def validate_principal_amount(self, value):
+        if value <= Decimal('0'):
+            raise serializers.ValidationError('principal_amount must be greater than zero.')
+        return value
+
+    def validate_term_months(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('term_months must be greater than zero.')
+        if value > 360:
+            raise serializers.ValidationError('term_months cannot exceed 360.')
+        return value
+
+    def validate_notes(self, value):
+        if value and len(value) > 2000:
+            raise serializers.ValidationError('notes must be 2000 characters or fewer.')
+        return value
+
 
 class RepaymentScheduleSerializer(serializers.ModelSerializer):
     class Meta:

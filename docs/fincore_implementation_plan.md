@@ -301,63 +301,63 @@ graph TD
 ### Tasks
 
 #### 3.1 Billing System (`apps/billing/`)
-- [ ] **Models**: `Subscription`, `Invoice`, `PaymentRecord`
-- [ ] **PaymentGateway protocol** (abstract interface):
+- [x] **Models**: `Subscription`, `Invoice`, `PaymentRecord`
+- [x] **PaymentGateway protocol** (abstract interface):
   - `initialize_payment(amount, currency, callback_url)`
   - `verify_payment(reference)`
   - `create_subscription(plan, customer)`
   - `cancel_subscription(subscription_id)`
-- [ ] **ChapaGateway** — implements PaymentGateway for Chapa API:
+- [x] **ChapaGateway** — implements PaymentGateway for Chapa API:
   - Initialize checkout
   - Verify transaction
   - Webhook signature validation
-- [ ] **BillingService**:
+- [x] **BillingService**:
   - `subscribe(tenant, plan)` — create subscription via gateway
   - `change_plan(tenant, new_plan)` — upgrade/downgrade
   - `process_webhook(payload)` — handle payment confirmation
   - `generate_invoice(subscription)` — periodic invoice generation
   - `check_subscription_status()` — Celery beat task
-- [ ] **Webhook endpoint**: POST `/api/v1/webhooks/chapa/` with signature verification
-- [ ] **Feature gating**: middleware checks tenant's plan features before allowing access
-- [ ] **Tests**: Subscription lifecycle, webhook processing, feature gating
+- [x] **Webhook endpoint**: POST `/api/v1/webhooks/chapa/` with signature verification
+- [x] **Feature gating**: middleware checks tenant's plan features before allowing access
+- [x] **Tests**: Subscription lifecycle, webhook processing, feature gating
 
 **Deliverable**: Working subscription billing with Chapa integration.
 
 #### 3.2 Notification System (`apps/notifications/`)
-- [ ] **Models**: `Notification`, `NotificationPreference`
-- [ ] **NotificationChannel protocol** (abstract):
+- [x] **Models**: `Notification`, `NotificationPreference`
+- [x] **NotificationChannel protocol** (abstract):
   - `send(recipient, title, body, metadata)`
-- [ ] **InAppChannel** — save to DB
-- [ ] **EmailChannel** — send via Django email backend (SMTP/SES)
-- [ ] **NotificationService**:
+- [x] **InAppChannel** — save to DB
+- [x] **EmailChannel** — send via Django email backend (SMTP/SES)
+- [x] **NotificationService**:
   - `notify(user, event_type, title, body, entity)` — route to appropriate channels based on preferences
   - `mark_read(notification)` / `mark_all_read(user, tenant)`
-- [ ] **Event subscribers**: connect to domain events:
+- [x] **Event subscribers**: connect to domain events:
   - `loan.approved` → notify borrower
   - `loan.disbursed` → notify borrower
   - `repayment.due_soon` → remind borrower (Celery beat, 3 days before due)
   - `workflow.step_assigned` → notify assignee
   - `subscription.payment_failed` → notify tenant admin
-- [ ] **API**: list notifications, mark read, preferences CRUD
-- [ ] **Tests**: Multi-channel delivery, preference filtering, event-triggered notifications
+- [x] **API**: list notifications, mark read, preferences CRUD
+- [x] **Tests**: Multi-channel delivery, preference filtering, event-triggered notifications
 
 **Deliverable**: In-app + email notifications triggered by domain events.
 
 #### 3.3 API Hardening
-- [ ] Rate limiting on auth endpoints (5 requests/min)
-- [ ] Rate limiting on financial write endpoints (30 requests/min)
-- [ ] Request/response logging middleware (non-sensitive fields only)
-- [ ] API documentation with drf-spectacular (OpenAPI 3.0 schema)
-- [ ] CORS configuration for frontend domain
-- [ ] Input validation hardening (max lengths, type checks on all serializers)
+- [x] Rate limiting on auth endpoints (5 requests/min)
+- [x] Rate limiting on financial write endpoints (30 requests/min)
+- [x] Request/response logging middleware (non-sensitive fields only)
+- [x] API documentation with drf-spectacular (OpenAPI 3.0 schema)
+- [x] CORS configuration for frontend domain
+- [x] Input validation hardening (max lengths, type checks on all serializers)
 
 #### 3.4 Security Hardening
-- [ ] JWT blacklist on logout
-- [ ] Refresh token rotation (new refresh token on each use)
-- [ ] Password policy enforcement (min length, complexity)
-- [ ] Sensitive field encryption at rest (PII fields)
-- [ ] Webhook signature verification (Chapa)
-- [ ] Django security middleware (HSTS, X-Frame-Options, CSP)
+- [x] JWT blacklist on logout
+- [x] Refresh token rotation (new refresh token on each use)
+- [x] Password policy enforcement (min length, complexity)
+- [x] Sensitive field encryption at rest (PII fields)
+- [x] Webhook signature verification (Chapa)
+- [x] Django security middleware (HSTS, X-Frame-Options, CSP)
 
 ### P3 Definition of Done
 - [x] Chapa billing integration working (subscribe, pay, webhook)

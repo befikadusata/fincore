@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from core.fields import EncryptedCharField
 
 
 class UserManager(BaseUserManager):
@@ -23,8 +24,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     """Custom user model using email as the unique identifier."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=150, blank=True)
-    last_name = models.CharField(max_length=150, blank=True)
+    first_name = EncryptedCharField(max_length=500, blank=True)
+    last_name = EncryptedCharField(max_length=500, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

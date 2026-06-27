@@ -2,6 +2,13 @@ from rest_framework import serializers
 from apps.saas.models import Tenant, User, Membership, Role, Permission, RolePermission
 
 
+class RegisterSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=254)
+    password = serializers.CharField(min_length=8, max_length=128, write_only=True)
+    first_name = serializers.CharField(max_length=150, default='', allow_blank=True)
+    last_name = serializers.CharField(max_length=150, default='', allow_blank=True)
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -13,6 +20,11 @@ class TenantSerializer(serializers.ModelSerializer):
         model = Tenant
         fields = ['id', 'name', 'slug', 'status', 'created_at']
         read_only_fields = ['status']
+
+    def validate_name(self, value):
+        if len(value.strip()) < 2:
+            raise serializers.ValidationError('Name must be at least 2 characters.')
+        return value.strip()
 
 
 class MembershipSerializer(serializers.ModelSerializer):

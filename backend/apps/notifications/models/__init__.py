@@ -1,1 +1,4 @@
-# Models will be imported here as they are created
+from apps.notifications.models.notification import Notification
+from apps.notifications.models.notification_preference import NotificationPreference
+
+__all__ = ['Notification', 'NotificationPreference']

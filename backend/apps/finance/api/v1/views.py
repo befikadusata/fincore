@@ -20,6 +20,7 @@ from apps.finance.services.reporting_service import ReportingService
 from core.exceptions import FinCoreError
 from core.middleware.tenant import get_current_tenant
 from core.permissions import HasPermission, IsTenantMember
+from core.throttles import FinancialWriteThrottle
 
 
 class LoanProductViewSet(viewsets.ModelViewSet):
@@ -56,6 +57,8 @@ class LoanViewSet(viewsets.ModelViewSet):
                 HasPermission.of('loans:manage')(),
             ]
         return [permissions.IsAuthenticated(), IsTenantMember()]
+
+    throttle_classes = [FinancialWriteThrottle]
 
     def perform_create(self, serializer):
         tenant = get_current_tenant()
