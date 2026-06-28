@@ -460,22 +460,22 @@ graph TD
 - [x] Role management — list of `Card` components, one per role; permissions displayed as `Badge-neutral` chips; create/edit role in `Modal` (modal-lg)
 
 #### 4.4 Finance Dashboard
-- [ ] **Overview dashboard** — 3–4 column KPI grid using `KPICard` domain component; metrics: Active Loans, Total Disbursed, Outstanding Balance, Overdue Count; amounts in `text-3xl font-mono font-bold`; positive deltas in `color-success-text`, negative in `color-warning-text`
-- [ ] **Loan products** — list as `Table`; create/edit in `Modal` (modal-lg) with interest type `Select` + amount limit fields using `InputAmount`
-- [ ] **Loans list** — `Table` with Status Rail on rows (`status-rail-active`, `status-rail-overdue`, `status-rail-danger`); columns: Loan ID (`col-id`), Borrower (sans), Amount (`col-amount`), `LoanStatusBadge`, Due Date (`col-date`); `TableToolbar` with search `Input` + Status `Select` + Date range; `EmptyState` copy: "No loans yet. Create a loan product, then submit your first application."
-- [ ] **Loan detail** — right `Drawer` (560px); `LoanStatusBadge` + `LoanTimeline` at top; `Tabs`: Info / Schedule / Transactions / History; Schedule tab: `RepaymentSchedule` component; History tab: audit entries from entity history endpoint
-- [ ] **Create loan application** — `Modal` (modal-lg); principal field uses `InputAmount` with ETB prefix following design system §6.2 currency pattern; product `Select` auto-fills term + rate fields
-- [ ] **Wallet list + detail** — wallet list as `Card` grid; detail `Drawer` with balance as `text-3xl font-mono` + `Table` of transactions using `AmountDisplay` for amounts
-- [ ] **Repayment form** — `Modal` (modal-md) with `InputAmount` for payment amount; shows schedule summary
-- [ ] **Trial balance report** — `Table` with account name (sans) + debit/credit columns (`col-amount` right-aligned mono); totals row in `font-bold`
-- [ ] All amounts: `AmountDisplay` component or `formatAmount()` — never raw numbers. All loan IDs: `formatLoanId()`. All dates: `formatDate()`.
+- [x] **Overview dashboard** — 3–4 column KPI grid using `KPICard` domain component; metrics: Active Loans, Total Disbursed, Outstanding Balance, Overdue Count; amounts in `text-3xl font-mono font-bold`; positive deltas in `color-success-text`, negative in `color-warning-text`
+- [x] **Loan products** — list as `Table`; create/edit in `Modal` (modal-lg) with interest type `Select` + amount limit fields using `InputAmount`
+- [x] **Loans list** — `Table` with Status Rail on rows (`status-rail-active`, `status-rail-overdue`, `status-rail-danger`); columns: Loan ID (`col-id`), Borrower (sans), Amount (`col-amount`), `LoanStatusBadge`, Due Date (`col-date`); `TableToolbar` with search `Input` + Status `Select` + Date range; `EmptyState` copy: "No loans yet. Create a loan product, then submit your first application."
+- [x] **Loan detail** — right `Drawer` (560px); `LoanStatusBadge` + `LoanTimeline` at top; `Tabs`: Info / Schedule / Transactions / History; Schedule tab: `RepaymentSchedule` component; History tab: audit entries from entity history endpoint
+- [x] **Create loan application** — `Modal` (modal-lg); principal field uses `InputAmount` with ETB prefix following design system §6.2 currency pattern; product `Select` auto-fills term + rate fields
+- [x] **Wallet list + detail** — wallet list as `Card` grid; detail `Drawer` with balance as `text-3xl font-mono` + `Table` of transactions using `AmountDisplay` for amounts
+- [x] **Repayment form** — `Modal` (modal-md) with `InputAmount` for payment amount; shows schedule summary
+- [x] **Trial balance report** — `Table` with account name (sans) + debit/credit columns (`col-amount` right-aligned mono); totals row in `font-bold`
+- [x] All amounts: `AmountDisplay` component or `formatAmount()` — never raw numbers. All loan IDs: `formatLoanId()`. All dates: `formatDate()`.
 
 #### 4.5 Workflow UI
-- [ ] **My Tasks inbox** — list of `WorkflowStepCard` components following design system §11.5 inbox pattern; unread dot (●) on unopened items; shows: step type, `formatLoanId()`, borrower name, `AmountDisplay`, `formatDate()` elapsed; `[Review]` button opens Drawer
-- [ ] **Step detail Drawer** — right `Drawer`; top: loan summary with `LoanStatusBadge`; `Tabs`: Detail / Comments; action buttons: Approve (`btn-primary`), Reject (`btn-danger`), Return (`btn-secondary`); each action opens a confirmation `Modal` (modal-md, design system §6.6 pattern) before submitting
-- [ ] **After action** — step card removes from inbox list; `Toast` (`toast-success`): "Loan approved and borrower notified." or appropriate message for Reject/Return
-- [ ] **Workflow timeline (admin)** — `LoanTimeline` adapted to show workflow step names + statuses instead of loan states; accessible under Workflow Definitions detail page
-- [ ] **Workflow definitions management** — list as `Table`; definition JSON in a `Modal` (modal-lg) with a `<textarea>` or JSON editor
+- [x] **My Tasks inbox** — list of `WorkflowStepCard` components following design system §11.5 inbox pattern; unread dot (●) on unopened items; shows: step type, `formatLoanId()`, borrower name, `AmountDisplay`, `formatDate()` elapsed; `[Review]` button opens Drawer
+- [x] **Step detail Drawer** — right `Drawer`; top: loan summary with `LoanStatusBadge`; `Tabs`: Detail / Comments; action buttons: Approve (`btn-primary`), Reject (`btn-danger`), Return (`btn-secondary`); each action opens a confirmation `Modal` (modal-md, design system §6.6 pattern) before submitting
+- [x] **After action** — step card removes from inbox list; `Toast` (`toast-success`): "Loan approved and borrower notified." or appropriate message for Reject/Return
+- [x] **Workflow timeline (admin)** — `LoanTimeline` adapted to show workflow step names + statuses instead of loan states; accessible under Workflow Definitions detail page
+- [x] **Workflow definitions management** — list as `Table`; definition JSON in a `Modal` (modal-lg) with a `<textarea>` or JSON editor
 
 #### 4.6 Audit & Notifications UI
 - [ ] **Activity log page** — `Table` with: timestamp (`col-date` mono), actor (sans), action (`Badge-neutral`), entity type (sans), entity ID (`col-id` mono), changes summary; filter toolbar: date range + actor search + action `Select`
