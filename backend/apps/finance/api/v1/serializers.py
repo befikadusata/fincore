@@ -53,12 +53,17 @@ class LoanProductSerializer(serializers.ModelSerializer):
 
 
 class LoanSerializer(serializers.ModelSerializer):
+    borrower_name = serializers.SerializerMethodField()
+    product_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Loan
         fields = [
             'id',
             'product',
+            'product_name',
             'borrower',
+            'borrower_name',
             'approved_by',
             'principal_amount',
             'interest_amount',
@@ -78,6 +83,8 @@ class LoanSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id',
+            'product_name',
+            'borrower_name',
             'interest_amount',
             'total_amount',
             'outstanding_balance',
@@ -91,6 +98,14 @@ class LoanSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
+
+    def get_borrower_name(self, obj):
+        u = obj.borrower
+        name = f"{u.first_name} {u.last_name}".strip()
+        return name if name else u.email
+
+    def get_product_name(self, obj):
+        return obj.product.name if obj.product else None
 
     def validate_principal_amount(self, value):
         if value <= Decimal('0'):
@@ -129,7 +144,14 @@ class RepaymentScheduleSerializer(serializers.ModelSerializer):
 
 
 class WalletSerializer(serializers.ModelSerializer):
+    owner_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Wallet
-        fields = ['id', 'wallet_type', 'currency', 'balance', 'status', 'created_at']
-        read_only_fields = fields
+        fields = ['id', 'owner_name', 'wallet_type', 'currency', 'balance', 'status', 'created_at']
+        read_only_fields = ['id', 'owner_name', 'wallet_type', 'currency', 'balance', 'status', 'created_at']
+
+    def get_owner_name(self, obj):
+        u = obj.owner
+        name = f"{u.first_name} {u.last_name}".strip()
+        return name if name else u.email

@@ -47,7 +47,7 @@ class LoanViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'head', 'options']
 
     def get_queryset(self):
-        return Loan.objects.all()
+        return Loan.objects.all().select_related('borrower', 'product', 'approved_by')
 
     def get_permissions(self):
         if self.action in ('approve', 'disburse'):
@@ -167,7 +167,7 @@ class WalletViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = WalletSerializer
 
     def get_queryset(self):
-        return Wallet.objects.all()  # TenantManager auto-scopes
+        return Wallet.objects.all().select_related('owner')  # TenantManager auto-scopes
 
     def get_permissions(self):
         return [permissions.IsAuthenticated(), IsTenantMember()]
