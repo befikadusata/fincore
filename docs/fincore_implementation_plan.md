@@ -373,67 +373,140 @@ graph TD
 
 > **Goal**: Production-grade Next.js dashboard consuming the backend API.
 
+> [!IMPORTANT]
+> **Design System**: All frontend work is governed by [`docs/ui_design_system.md`](./ui_design_system.md) (v1.0). That document is the single source of truth for tokens, typography, components, and patterns. Do not hard-code hex values, font sizes, or spacing in components — always reference a semantic token or a utility from `lib/format.ts` / `lib/status.ts`.
+>
+> **Stack**: Next.js App Router + TypeScript + Tailwind CSS + CSS Variables
+>
+> **Three cross-cutting rules for every screen:**
+> 1. **Status Rail** — 3px left border on every entity card and table row, colour driven by entity status
+> 2. **Mono font for numbers** — all currency amounts, IDs, dates, and rates use `font-mono` via `AmountDisplay` or `formatAmount()`; never `font-sans` for numeric data
+> 3. **Status colours** — always derive from `loanStatusVariant(status)` (`lib/status.ts`) + §3.4 mapping; never hard-code a colour for a status
+
 ### Tasks
 
+#### 4.0 Design System Foundation
+
+> **Complete before any screen work.** All UI and domain components must be built and exported before tasks 4.1–4.7 begin.
+
+**Token layer** (`src/styles/tokens/` — design system §7):
+- [x] `base.css` — raw values: hex, px, rem, ms (design system §3.1, §4.1, §5.1–5.2)
+- [x] `semantic.css` — light mode semantic tokens (design system §3.2)
+- [x] `semantic.dark.css` — `[data-theme="dark"]` overrides (design system §3.3)
+- [x] `index.css` — `@import` of all three token files
+- [x] `globals.css` — CSS reset + body defaults, imports `index.css`
+
+**Tailwind config** (via `@theme inline` in `globals.css` — Tailwind v4 CSS-first config):
+- [x] CSS variable bridge — `bg-surface`, `bg-page`, `bg-sunken`, `text-primary`, `text-secondary`, `text-tertiary`, `text-inverse`, `text-brand`, `border-border`, `border-strong`, `brand`, `brand-subtle`
+- [x] Font families: `Inter` (sans), `JetBrains Mono` (mono) — loaded via `next/font/google`
+- [x] Font sizes + line heights matching design system §4.3
+- [x] Spacing scale from design system §5.1
+- [x] Border radius, box shadows, transition durations from design system §5.2
+- [x] Dark mode selector: `@custom-variant dark` with `[data-theme="dark"]`
+
+**Dark mode** (`lib/theme.ts` + `app/layout.tsx` — design system §8.2):
+- [x] `setTheme(theme)` / `initTheme()` — reads `localStorage`, falls back to `prefers-color-scheme`
+- [x] Inline `<script>` in `<head>` to apply theme before first paint (no flash)
+
+**UI component library** (`src/components/ui/` — design system §6):
+- [x] `Button.tsx` — variants: primary, secondary, danger, ghost; sizes: sm, md, lg; loading state (spinner + "Processing…" label, disabled)
+- [x] `Input.tsx` — base input + `InputAmount` variant (mono font, right-aligned, currency prefix slot)
+- [x] `Badge.tsx` — variants: success, info, warning, danger, neutral, purple; optional dot element
+- [x] `Card.tsx` — base card + KPI variant; Status Rail support via `statusRail` prop mapped to `card-status-rail status-{variant}` classes
+- [x] `Modal.tsx` — sizes: sm (400px), md (560px), lg (720px); sticky header + footer; Headless UI `Dialog` for focus trap + Escape close
+- [x] `Drawer.tsx` — right-side, `min(560px, 100vw)`; flex column with scrollable body; same Headless UI `Dialog` base as Modal
+- [x] `Table.tsx` — `col-amount` (mono right), `col-id` (mono sm secondary), `col-date` (mono sm secondary); status rail on rows via `statusRail` row prop; `TableToolbar` sub-component (search + filter slots)
+- [x] `Tabs.tsx` — brand amber underline on active tab; `margin-bottom: -1px` flush with container border
+- [x] `Toast.tsx` — four variants (success, error, warning, info) each with 3px left rail; `ToastRegion` fixed bottom-right stacked container
+- [x] `EmptyState.tsx` — centered icon + title (xl semibold) + description (base secondary, max-w 360px) + optional action slot
+- [x] `index.ts` — barrel export of all components above
+
+**Domain components** (`src/components/domain/` — design system §7):
+- [x] `LoanStatusBadge.tsx` — wraps `Badge` with `loanStatusVariant(status)` from `lib/status.ts`; accepts raw `status` string
+- [x] `AmountDisplay.tsx` — mono font, semibold, currency prefix (default `ETB`), calls `formatAmount()` from `lib/format.ts`; size prop maps to `text-md` through `text-3xl`
+- [x] `KPICard.tsx` — label (`text-sm secondary`) / amount (`text-3xl font-mono font-bold`) / delta line (`text-sm success-text` or `warning-text`) layout
+- [x] `LoanTimeline.tsx` — horizontal step strip; steps derived from loan state machine order; current step highlighted with brand amber; completed steps muted; rejected/defaulted in danger colour
+- [x] `RepaymentSchedule.tsx` — `Table` of installments with: #, due date (`col-date`), principal (`col-amount`), interest (`col-amount`), total (`col-amount`), `LoanStatusBadge` for installment status
+- [x] `WorkflowStepCard.tsx` — unread dot, step type label, entity ID (`col-id`), borrower name, `AmountDisplay`, elapsed time (`formatDate`), primary action button
+
+**Utility libraries** (`src/lib/` — design system §11.1–11.2):
+- [x] `lib/format.ts` — `formatAmount(amount: number, currency?: string, locale?: string): string` (amounts stored in minor units ÷ 100); `formatLoanId(id: string): string` → `LN-XXXXXXXX`; `formatDate(date: string): string` → `DD Mon YYYY`
+- [x] `lib/status.ts` — `type BadgeVariant = 'success' | 'info' | 'warning' | 'danger' | 'neutral' | 'purple'`; `loanStatusVariant(status: string): BadgeVariant` using the ten-status mapping from design system §3.4
+
+**Deliverable**: Token layer active in browser (light + dark), Tailwind config wired, all 10 UI components + 6 domain components exported from their respective `index.ts` files, format and status utils tested.
+
+---
+
 #### 4.1 Project Setup
-- [ ] Initialize Next.js with App Router + TypeScript
-- [ ] Configure Tailwind CSS
-- [ ] Set up TanStack Query provider
-- [ ] Set up Zustand stores (auth, tenant, UI)
-- [ ] Create API client layer (axios instance with JWT interceptor, refresh logic)
-- [ ] Set up Zod schemas mirroring backend validation
-- [ ] Component library setup (buttons, inputs, modals, tables, cards)
+- [ ] Initialize Next.js with App Router + TypeScript (design system token + Tailwind work goes in 4.0, not here)
+- [ ] Configure Tailwind CSS — base config only; CSS variable bridge is part of Task 4.0
+- [ ] Set up TanStack Query provider (`QueryClientProvider` in `app/providers.tsx`)
+- [ ] Set up Zustand stores: `auth` (user, tokens), `tenant` (active tenant, list), `ui` (sidebar open, `theme: 'light' | 'dark'`, `setTheme()`)
+- [ ] Create API client (`src/lib/api.ts`) — axios instance with `NEXT_PUBLIC_API_URL` base URL; request interceptor attaches `Authorization: Bearer <access>`; response interceptor auto-refreshes on 401 using `/api/v1/auth/token/refresh/` then retries original request
+- [ ] Set up Zod schemas in `src/lib/schemas/` mirroring backend serializer validations (loan, repayment, member invite, role)
 
 #### 4.2 Auth UI
-- [ ] Login page
-- [ ] Registration page
-- [ ] Password reset flow
-- [ ] Auth middleware (redirect unauthenticated)
-- [ ] JWT refresh interceptor (auto-refresh on 401)
+- [ ] Login page — `Card` (centered, max-w 400px) wrapping `Input` (email + password with error state), `Button` (primary, full-width, loading state on submit)
+- [ ] Registration page — same card pattern; all form fields use `field` / `field-label` / `field-label-required` / `field-error` / `field-hint` structure from design system §6.2; amber focus ring is automatic via `--color-border-focus`
+- [ ] Password reset flow — request email page + reset-with-token page; same card layout
+- [ ] Auth middleware (`middleware.ts`) — checks `access_token` cookie; redirects unauthenticated requests to `/login`; redirects authenticated `/login` to `/dashboard`
+- [ ] JWT refresh interceptor — handled in API client (see 4.1); clears auth store + redirects to `/login` if refresh also fails
 
 #### 4.3 Tenant & SaaS UI
-- [ ] Tenant switcher (workspace dropdown, like Slack)
-- [ ] Create organization flow
-- [ ] Organization settings page
-- [ ] Member management (invite, remove, change role)
-- [ ] Role management (create roles, assign permissions)
+- [ ] Tenant switcher — in sidebar logo area (design system §6.7): `FinCore` wordmark + `[Tenant Name ▾]` using Headless UI `Menu`; switching calls `/api/v1/tenants/switch/` and updates auth store
+- [ ] Create organization flow — multi-step `Modal` (modal-md): org name → confirm; calls tenant create endpoint
+- [ ] Organization settings page — `Tabs` (Profile / Members / Roles / Billing); each tab is a scrollable `Card` section
+- [ ] Member management — member list as `Table` with role `Badge` (neutral) per member; invite via `Modal` (modal-md): email `Input` + role `Select` + `Button` (primary: Invite); remove via `btn-danger` + confirmation `Modal`
+- [ ] Role management — list of `Card` components, one per role; permissions displayed as `Badge-neutral` chips; create/edit role in `Modal` (modal-lg)
 
 #### 4.4 Finance Dashboard
-- [ ] Overview dashboard (KPIs: active loans, total disbursed, outstanding balance, overdue count)
-- [ ] Loan products list + create form
-- [ ] Loans list (filterable by status, date, borrower)
-- [ ] Loan detail page (info, schedule, transactions, status timeline)
-- [ ] Create loan application form
-- [ ] Wallet list + detail (balance, transaction history)
-- [ ] Repayment processing form
-- [ ] Trial balance report view
+- [ ] **Overview dashboard** — 3–4 column KPI grid using `KPICard` domain component; metrics: Active Loans, Total Disbursed, Outstanding Balance, Overdue Count; amounts in `text-3xl font-mono font-bold`; positive deltas in `color-success-text`, negative in `color-warning-text`
+- [ ] **Loan products** — list as `Table`; create/edit in `Modal` (modal-lg) with interest type `Select` + amount limit fields using `InputAmount`
+- [ ] **Loans list** — `Table` with Status Rail on rows (`status-rail-active`, `status-rail-overdue`, `status-rail-danger`); columns: Loan ID (`col-id`), Borrower (sans), Amount (`col-amount`), `LoanStatusBadge`, Due Date (`col-date`); `TableToolbar` with search `Input` + Status `Select` + Date range; `EmptyState` copy: "No loans yet. Create a loan product, then submit your first application."
+- [ ] **Loan detail** — right `Drawer` (560px); `LoanStatusBadge` + `LoanTimeline` at top; `Tabs`: Info / Schedule / Transactions / History; Schedule tab: `RepaymentSchedule` component; History tab: audit entries from entity history endpoint
+- [ ] **Create loan application** — `Modal` (modal-lg); principal field uses `InputAmount` with ETB prefix following design system §6.2 currency pattern; product `Select` auto-fills term + rate fields
+- [ ] **Wallet list + detail** — wallet list as `Card` grid; detail `Drawer` with balance as `text-3xl font-mono` + `Table` of transactions using `AmountDisplay` for amounts
+- [ ] **Repayment form** — `Modal` (modal-md) with `InputAmount` for payment amount; shows schedule summary
+- [ ] **Trial balance report** — `Table` with account name (sans) + debit/credit columns (`col-amount` right-aligned mono); totals row in `font-bold`
+- [ ] All amounts: `AmountDisplay` component or `formatAmount()` — never raw numbers. All loan IDs: `formatLoanId()`. All dates: `formatDate()`.
 
 #### 4.5 Workflow UI
-- [ ] My Tasks inbox (pending approvals assigned to current user)
-- [ ] Workflow step detail + action buttons (Approve / Reject / Return)
-- [ ] Workflow instance timeline (visual step progression)
-- [ ] Workflow definitions management (admin)
+- [ ] **My Tasks inbox** — list of `WorkflowStepCard` components following design system §11.5 inbox pattern; unread dot (●) on unopened items; shows: step type, `formatLoanId()`, borrower name, `AmountDisplay`, `formatDate()` elapsed; `[Review]` button opens Drawer
+- [ ] **Step detail Drawer** — right `Drawer`; top: loan summary with `LoanStatusBadge`; `Tabs`: Detail / Comments; action buttons: Approve (`btn-primary`), Reject (`btn-danger`), Return (`btn-secondary`); each action opens a confirmation `Modal` (modal-md, design system §6.6 pattern) before submitting
+- [ ] **After action** — step card removes from inbox list; `Toast` (`toast-success`): "Loan approved and borrower notified." or appropriate message for Reject/Return
+- [ ] **Workflow timeline (admin)** — `LoanTimeline` adapted to show workflow step names + statuses instead of loan states; accessible under Workflow Definitions detail page
+- [ ] **Workflow definitions management** — list as `Table`; definition JSON in a `Modal` (modal-lg) with a `<textarea>` or JSON editor
 
 #### 4.6 Audit & Notifications UI
-- [ ] Activity log page (filterable timeline)
-- [ ] Entity history view (integrated into loan/wallet detail pages)
-- [ ] Notification dropdown (bell icon with unread count)
-- [ ] Notification preferences page
+- [ ] **Activity log page** — `Table` with: timestamp (`col-date` mono), actor (sans), action (`Badge-neutral`), entity type (sans), entity ID (`col-id` mono), changes summary; filter toolbar: date range + actor search + action `Select`
+- [ ] **Entity history** — embedded in Loan and Wallet detail Drawers as the History tab; calls entity history endpoint; renders as chronological list with same columns as activity log
+- [ ] **Notification bell** — in app header; `nav-item-badge` (design system §6.7) showing unread count in danger styling; Headless UI `Menu` dropdown on click; each item: title (semibold) + time (mono sm); mark-read on item click; `EmptyState` copy: "All clear. No new notifications."
+- [ ] **Notification preferences page** — `Card` per channel (in-app / email) with toggle switches per event type (loan approved, disbursed, repayment due, workflow assigned, payment failed)
 
 #### 4.7 Billing UI
-- [ ] Subscription status page
-- [ ] Plan comparison + upgrade flow
-- [ ] Invoice history
-- [ ] Chapa checkout integration
+- [ ] **Subscription status** — `Card` with Status Rail: success (active), warning (past-due), danger (cancelled/expired); shows plan name, renewal date, next invoice amount via `AmountDisplay`
+- [ ] **Plan comparison** — 2–3 column `Card` grid; current plan card has `border-brand` highlight and "Current plan" `Badge-success`; upgrade button opens confirmation `Modal` (modal-md): "Upgrade to [Plan]? Your next invoice will be ETB X." following design system §6.6 confirmation pattern
+- [ ] **Invoice history** — `Table` with: date (`col-date`), invoice # (`col-id`), amount (`col-amount`), status `Badge`; `EmptyState` copy: "No invoices yet."
+- [ ] **Chapa checkout** — `Button` (primary: Pay Now) redirects to Chapa-hosted checkout; `/billing/success` return URL shows `Toast` (`toast-success`) and refreshes subscription status
 
 ### P4 Definition of Done
-- [x] All core screens functional
-- [x] Auth flow complete (login, register, refresh, logout)
-- [x] Tenant switching working
-- [x] Loan lifecycle manageable through UI
-- [x] Workflow approvals working through UI
-- [x] Responsive on desktop + tablet
-- [x] Role-based UI rendering (hide unauthorized actions)
+- [ ] All core screens functional
+- [ ] Auth flow complete (login, register, refresh, logout)
+- [ ] Tenant switching working
+- [ ] Loan lifecycle manageable through UI
+- [ ] Workflow approvals working through UI
+- [ ] Responsive on desktop + tablet (design system §10 breakpoints)
+- [ ] Role-based UI rendering (hide unauthorized actions)
+- [ ] Design system token files implemented (`base.css`, `semantic.css`, `semantic.dark.css`)
+- [ ] Tailwind config bridges CSS variables; `bg-surface`, `text-primary`, `font-mono` etc. usable as Tailwind classes
+- [ ] All 10 UI components in `src/components/ui/` per design system §6
+- [ ] All 6 domain components in `src/components/domain/` per design system §7
+- [ ] `lib/format.ts` + `lib/status.ts` utilities in place and used consistently
+- [ ] All currency amounts rendered via `AmountDisplay` / `formatAmount()` — no raw numbers or ad-hoc formatting
+- [ ] Loan status colours consistent with design system §3.4 mapping; `loanStatusVariant()` used everywhere
+- [ ] Status Rail applied to all loan cards and loan table rows
+- [ ] Dark mode toggle functional; no flash on load (`localStorage` + inline script); persisted across sessions
+- [ ] Accessibility: `focus-visible` rings on all interactive elements, `aria-label` on icon-only buttons, `prefers-reduced-motion` CSS override in globals
 
 ---
 

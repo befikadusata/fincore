@@ -1,0 +1,64 @@
+[data-theme="dark"] {
+  /* === Surfaces === */
+  --color-bg-page:         var(--base-neutral-950);
+  --color-bg-surface:      var(--base-neutral-900);
+  --color-bg-elevated:     var(--base-neutral-800);
+  --color-bg-sunken:       var(--base-neutral-950);
+  --color-bg-overlay:      rgba(0, 0, 0, 0.65);
+
+  /* === Borders === */
+  --color-border-default:  var(--base-neutral-800);
+  --color-border-strong:   var(--base-neutral-700);
+  --color-border-focus:    var(--base-amber-400);
+
+  /* === Text === */
+  --color-text-primary:    var(--base-neutral-50);
+  --color-text-secondary:  var(--base-neutral-400);
+  --color-text-tertiary:   var(--base-neutral-500);
+  --color-text-disabled:   var(--base-neutral-700);
+  --color-text-inverse:    var(--base-neutral-900);
+  --color-text-link:       var(--base-blue-500);
+  --color-text-link-hover: var(--base-blue-100);
+
+  /* === Brand / Interactive === */
+  --color-brand-default:   var(--base-amber-400);
+  --color-brand-hover:     var(--base-amber-500);
+  --color-brand-subtle:    rgba(255, 193, 7, 0.12);
+  --color-brand-text:      var(--base-amber-200);
+
+  /* === Feedback: Success === */
+  --color-success-bg:      rgba(16, 185, 129, 0.12);
+  --color-success-border:  var(--base-green-500);
+  --color-success-text:    var(--base-green-500);
+  --color-success-rail:    var(--base-green-500);
+
+  /* === Feedback: Info === */
+  --color-info-bg:         rgba(59, 130, 246, 0.12);
+  --color-info-border:     var(--base-blue-500);
+  --color-info-text:       var(--base-blue-500);
+  --color-info-rail:       var(--base-blue-500);
+
+  /* === Feedback: Warning === */
+  --color-warning-bg:      rgba(249, 115, 22, 0.12);
+  --color-warning-border:  var(--base-orange-500);
+  --color-warning-text:    var(--base-orange-500);
+  --color-warning-rail:    var(--base-orange-500);
+
+  /* === Feedback: Danger === */
+  --color-danger-bg:       rgba(239, 68, 68, 0.12);
+  --color-danger-border:   var(--base-red-500);
+  --color-danger-text:     var(--base-red-500);
+  --color-danger-rail:     var(--base-red-500);
+
+  /* === Feedback: Neutral === */
+  --color-neutral-bg:      rgba(156, 163, 175, 0.10);
+  --color-neutral-border:  var(--base-gray-600);
+  --color-neutral-text:    var(--base-gray-400);
+  --color-neutral-rail:    var(--base-gray-600);
+
+  /* === Feedback: Purple === */
+  --color-purple-bg:       rgba(139, 92, 246, 0.12);
+  --color-purple-border:   var(--base-purple-500);
+  --color-purple-text:     var(--base-purple-500);
+  --color-purple-rail:     var(--base-purple-500);
+}

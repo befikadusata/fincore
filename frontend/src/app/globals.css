@@ -1,0 +1,98 @@
+@import "tailwindcss";
+@import "../styles/tokens/index.css";
+
+/* Dark mode: driven by data-theme="dark" on <html> */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Tailwind v4 theme bridge — semantic tokens → utility classes */
+@theme inline {
+  /* Font families — reference next/font CSS variables set on <html> */
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Fira Code', 'Consolas', monospace;
+
+  /* Font sizes (design system Major Third scale) */
+  --text-xs:   var(--ds-text-xs);
+  --text-sm:   var(--ds-text-sm);
+  --text-base: var(--ds-text-base);
+  --text-md:   var(--ds-text-md);
+  --text-lg:   var(--ds-text-lg);
+  --text-xl:   var(--ds-text-xl);
+  --text-2xl:  var(--ds-text-2xl);
+  --text-3xl:  var(--ds-text-3xl);
+  --text-4xl:  var(--ds-text-4xl);
+
+  /* Background colors → bg-page, bg-surface, bg-elevated, bg-sunken */
+  --color-page:    var(--color-bg-page);
+  --color-surface: var(--color-bg-surface);
+  --color-elevated: var(--color-bg-elevated);
+  --color-sunken:  var(--color-bg-sunken);
+
+  /* Text colors → text-primary, text-secondary, text-tertiary, text-inverse, text-brand */
+  --color-primary:   var(--color-text-primary);
+  --color-secondary: var(--color-text-secondary);
+  --color-tertiary:  var(--color-text-tertiary);
+  --color-disabled:  var(--color-text-disabled);
+  --color-inverse:   var(--color-text-inverse);
+
+  /* Brand → bg-brand, text-brand, border-brand */
+  --color-brand:        var(--color-brand-default);
+  --color-brand-subtle: var(--color-brand-subtle);
+  --color-brand-text:   var(--color-brand-text);
+
+  /* Border → border-border, border-strong */
+  --color-border:        var(--color-border-default);
+  --color-border-strong: var(--color-border-strong);
+
+  /* Border radius */
+  --radius-sm:   var(--radius-sm);
+  --radius:      var(--radius-md);
+  --radius-lg:   var(--radius-lg);
+  --radius-xl:   var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  /* Shadows */
+  --shadow-sm: var(--shadow-sm);
+  --shadow:    var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+
+  /* Transition durations */
+  --duration-fast:   var(--duration-fast);
+  --duration-normal: var(--duration-normal);
+  --duration-slow:   var(--duration-slow);
+}
+
+/* CSS reset + body defaults */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-base);
+  line-height: var(--ds-leading-normal);
+}
+
+/* Focus ring — amber, consistent across all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
