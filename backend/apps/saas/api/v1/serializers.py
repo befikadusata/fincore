@@ -29,10 +29,14 @@ class TenantSerializer(serializers.ModelSerializer):
 
 class MembershipSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    roles = serializers.SerializerMethodField()
 
     class Meta:
         model = Membership
-        fields = ['id', 'user', 'tenant', 'status', 'created_at']
+        fields = ['id', 'user', 'tenant', 'status', 'roles', 'created_at']
+
+    def get_roles(self, obj):
+        return [{'id': str(role.id), 'name': role.name, 'slug': role.slug} for role in obj.roles.all()]
 
 
 class PermissionSerializer(serializers.ModelSerializer):

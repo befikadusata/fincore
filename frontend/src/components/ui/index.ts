@@ -19,3 +19,5 @@ export type { TabItem } from './Tabs';
 export { ToastProvider, useToast } from './Toast';
 
 export { EmptyState } from './EmptyState';
+
+export { Select } from './Select';

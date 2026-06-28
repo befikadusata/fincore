@@ -16,12 +16,17 @@ export interface TabItem {
 interface TabsProps {
   tabs: TabItem[];
   defaultIndex?: number;
+  selectedIndex?: number;
   onChange?: (index: number) => void;
 }
 
-export function Tabs({ tabs, defaultIndex = 0, onChange }: TabsProps) {
+export function Tabs({ tabs, defaultIndex = 0, selectedIndex, onChange }: TabsProps) {
+  const controlled = selectedIndex !== undefined;
   return (
-    <TabGroup defaultIndex={defaultIndex} onChange={onChange}>
+    <TabGroup
+      {...(controlled ? { selectedIndex } : { defaultIndex })}
+      onChange={onChange}
+    >
       <TabList className="flex border-b border-[color:var(--color-border-default)]">
         {tabs.map((tab) => (
           <Tab

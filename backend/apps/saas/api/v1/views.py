@@ -56,6 +56,13 @@ class TenantViewSet(viewsets.ModelViewSet):
         })
 
 
+class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = PermissionSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTenantMember]
+    queryset = Permission.objects.all()
+    pagination_class = None
+
+
 class MembershipViewSet(viewsets.ModelViewSet):
     serializer_class = MembershipSerializer
     permission_classes = [permissions.IsAuthenticated, IsTenantMember]
@@ -64,7 +71,11 @@ class MembershipViewSet(viewsets.ModelViewSet):
         tenant = getattr(self.request, 'tenant', None)
         if not tenant:
             return Membership.objects.none()
-        return Membership.objects.filter(tenant=tenant)
+        return (
+            Membership.objects.filter(tenant=tenant)
+            .select_related('user')
+            .prefetch_related('roles')
+        )
 
     @action(detail=False, methods=['post'])
     def invite(self, request):
@@ -96,18 +107,27 @@ class RoleViewSet(viewsets.ModelViewSet):
         tenant = getattr(self.request, 'tenant', None)
         if not tenant:
             return Role.objects.none()
-        return Role.objects.filter(tenant=tenant)
+        return Role.objects.filter(tenant=tenant).prefetch_related('role_permissions__permission')
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request, 'tenant', None)
+        if not tenant:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("No tenant context")
+        serializer.save(tenant=tenant)
 
     @action(
         detail=True,
         methods=['post'],
-        permission_classes=[permissions.IsAuthenticated, IsTenantMember, HasPermission.of('roles:assign_permissions')],
+        permission_classes=[permissions.IsAuthenticated, IsTenantMember],
     )
     def assign_permissions(self, request, pk=None):
         role = self.get_object()
         serializer = AssignPermissionsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        # Replace: clear existing, add new
+        RolePermission.objects.filter(role=role).delete()
         for perm_id in serializer.validated_data['permission_ids']:
             RolePermission.objects.get_or_create(
                 role=role,

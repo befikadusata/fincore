@@ -453,11 +453,11 @@ graph TD
 - [x] JWT refresh interceptor — handled in API client (see 4.1); clears auth store + redirects to `/login` if refresh also fails
 
 #### 4.3 Tenant & SaaS UI
-- [ ] Tenant switcher — in sidebar logo area (design system §6.7): `FinCore` wordmark + `[Tenant Name ▾]` using Headless UI `Menu`; switching calls `/api/v1/tenants/switch/` and updates auth store
-- [ ] Create organization flow — multi-step `Modal` (modal-md): org name → confirm; calls tenant create endpoint
-- [ ] Organization settings page — `Tabs` (Profile / Members / Roles / Billing); each tab is a scrollable `Card` section
-- [ ] Member management — member list as `Table` with role `Badge` (neutral) per member; invite via `Modal` (modal-md): email `Input` + role `Select` + `Button` (primary: Invite); remove via `btn-danger` + confirmation `Modal`
-- [ ] Role management — list of `Card` components, one per role; permissions displayed as `Badge-neutral` chips; create/edit role in `Modal` (modal-lg)
+- [x] Tenant switcher — in sidebar logo area (design system §6.7): `FinCore` wordmark + `[Tenant Name ▾]` using Headless UI `Menu`; switching calls `/api/v1/tenants/switch/` and updates auth store
+- [x] Create organization flow — multi-step `Modal` (modal-md): org name → confirm; calls tenant create endpoint
+- [x] Organization settings page — `Tabs` (Profile / Members / Roles / Billing); each tab is a scrollable `Card` section
+- [x] Member management — member list as `Table` with role `Badge` (neutral) per member; invite via `Modal` (modal-md): email `Input` + role `Select` + `Button` (primary: Invite); remove via `btn-danger` + confirmation `Modal`
+- [x] Role management — list of `Card` components, one per role; permissions displayed as `Badge-neutral` chips; create/edit role in `Modal` (modal-lg)
 
 #### 4.4 Finance Dashboard
 - [ ] **Overview dashboard** — 3–4 column KPI grid using `KPICard` domain component; metrics: Active Loans, Total Disbursed, Outstanding Balance, Overdue Count; amounts in `text-3xl font-mono font-bold`; positive deltas in `color-success-text`, negative in `color-warning-text`
