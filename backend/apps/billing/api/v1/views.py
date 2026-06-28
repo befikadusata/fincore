@@ -1,3 +1,4 @@
+from django.conf import settings as django_settings
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,8 +12,9 @@ from apps.billing.api.v1.serializers import (
     ChangePlanSerializer,
     InvoiceSerializer,
 )
-from apps.billing.constants import BillingCycle, GatewayProvider
+from apps.billing.constants import BillingCycle, GatewayProvider, InvoiceStatus
 from apps.billing.services.billing_service import BillingService
+from apps.billing.services.gateways.chapa import ChapaGateway
 
 
 class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -63,3 +65,31 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Invoice.objects.select_related('subscription__plan').all()
+
+    @action(detail=True, methods=['post'])
+    def checkout(self, request, pk=None):
+        invoice = self.get_object()
+
+        if invoice.status == InvoiceStatus.PAID:
+            return Response({'error': 'Invoice already paid'}, status=status.HTTP_400_BAD_REQUEST)
+
+        frontend_url = getattr(django_settings, 'FRONTEND_URL', 'http://localhost:3000')
+        backend_url = getattr(django_settings, 'BACKEND_URL', 'http://localhost:8000')
+
+        gateway = ChapaGateway()
+        user = request.user
+        customer_name = f"{user.first_name} {user.last_name}".strip() or user.email
+
+        try:
+            result = gateway.initialize_payment(
+                amount=invoice.amount,
+                currency=invoice.currency,
+                callback_url=f"{backend_url}/api/v1/webhooks/chapa/",
+                reference=invoice.invoice_number,
+                customer_email=user.email,
+                customer_name=customer_name,
+                return_url=f"{frontend_url}/billing/success",
+            )
+            return Response({'checkout_url': result.checkout_url, 'reference': result.reference})
+        except Exception as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)

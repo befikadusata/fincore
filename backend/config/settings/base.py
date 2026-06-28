@@ -202,3 +202,7 @@ LOGGING = {
 # Chapa payment gateway
 CHAPA_SECRET_KEY = env('CHAPA_SECRET_KEY', default='')
 CHAPA_WEBHOOK_SECRET = env('CHAPA_WEBHOOK_SECRET', default='')
+
+# Public URLs (used for Chapa return/callback URLs)
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
+BACKEND_URL = env('BACKEND_URL', default='http://localhost:8000')

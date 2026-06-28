@@ -484,29 +484,29 @@ graph TD
 - [x] **Notification preferences page** — `Card` per channel (in-app / email) with toggle switches per event type (loan approved, disbursed, repayment due, workflow assigned, payment failed)
 
 #### 4.7 Billing UI
-- [ ] **Subscription status** — `Card` with Status Rail: success (active), warning (past-due), danger (cancelled/expired); shows plan name, renewal date, next invoice amount via `AmountDisplay`
-- [ ] **Plan comparison** — 2–3 column `Card` grid; current plan card has `border-brand` highlight and "Current plan" `Badge-success`; upgrade button opens confirmation `Modal` (modal-md): "Upgrade to [Plan]? Your next invoice will be ETB X." following design system §6.6 confirmation pattern
-- [ ] **Invoice history** — `Table` with: date (`col-date`), invoice # (`col-id`), amount (`col-amount`), status `Badge`; `EmptyState` copy: "No invoices yet."
-- [ ] **Chapa checkout** — `Button` (primary: Pay Now) redirects to Chapa-hosted checkout; `/billing/success` return URL shows `Toast` (`toast-success`) and refreshes subscription status
+- [x] **Subscription status** — `Card` with Status Rail: success (active), warning (past-due), danger (cancelled/expired); shows plan name, renewal date, next invoice amount via `AmountDisplay`
+- [x] **Plan comparison** — 2–3 column `Card` grid; current plan card has `border-brand` highlight and "Current plan" `Badge-success`; upgrade button opens confirmation `Modal` (modal-md): "Upgrade to [Plan]? Your next invoice will be ETB X." following design system §6.6 confirmation pattern
+- [x] **Invoice history** — `Table` with: date (`col-date`), invoice # (`col-id`), amount (`col-amount`), status `Badge`; `EmptyState` copy: "No invoices yet."
+- [x] **Chapa checkout** — `Button` (primary: Pay Now) redirects to Chapa-hosted checkout; `/billing/success` return URL shows `Toast` (`toast-success`) and refreshes subscription status
 
 ### P4 Definition of Done
-- [ ] All core screens functional
-- [ ] Auth flow complete (login, register, refresh, logout)
-- [ ] Tenant switching working
-- [ ] Loan lifecycle manageable through UI
-- [ ] Workflow approvals working through UI
-- [ ] Responsive on desktop + tablet (design system §10 breakpoints)
-- [ ] Role-based UI rendering (hide unauthorized actions)
-- [ ] Design system token files implemented (`base.css`, `semantic.css`, `semantic.dark.css`)
-- [ ] Tailwind config bridges CSS variables; `bg-surface`, `text-primary`, `font-mono` etc. usable as Tailwind classes
-- [ ] All 10 UI components in `src/components/ui/` per design system §6
-- [ ] All 6 domain components in `src/components/domain/` per design system §7
-- [ ] `lib/format.ts` + `lib/status.ts` utilities in place and used consistently
-- [ ] All currency amounts rendered via `AmountDisplay` / `formatAmount()` — no raw numbers or ad-hoc formatting
-- [ ] Loan status colours consistent with design system §3.4 mapping; `loanStatusVariant()` used everywhere
-- [ ] Status Rail applied to all loan cards and loan table rows
-- [ ] Dark mode toggle functional; no flash on load (`localStorage` + inline script); persisted across sessions
-- [ ] Accessibility: `focus-visible` rings on all interactive elements, `aria-label` on icon-only buttons, `prefers-reduced-motion` CSS override in globals
+- [x] All core screens functional
+- [x] Auth flow complete (login, register, refresh, logout)
+- [x] Tenant switching working
+- [x] Loan lifecycle manageable through UI
+- [x] Workflow approvals working through UI
+- [x] Responsive on desktop + tablet (design system §10 breakpoints)
+- [x] Role-based UI rendering (hide unauthorized actions)
+- [x] Design system token files implemented (`base.css`, `semantic.css`, `semantic.dark.css`)
+- [x] Tailwind config bridges CSS variables; `bg-surface`, `text-primary`, `font-mono` etc. usable as Tailwind classes
+- [x] All 10 UI components in `src/components/ui/` per design system §6
+- [x] All 6 domain components in `src/components/domain/` per design system §7
+- [x] `lib/format.ts` + `lib/status.ts` utilities in place and used consistently
+- [x] All currency amounts rendered via `AmountDisplay` / `formatAmount()` — no raw numbers or ad-hoc formatting
+- [x] Loan status colours consistent with design system §3.4 mapping; `loanStatusVariant()` used everywhere
+- [x] Status Rail applied to all loan cards and loan table rows
+- [x] Dark mode toggle functional; no flash on load (`localStorage` + inline script); persisted across sessions
+- [x] Accessibility: `focus-visible` rings on all interactive elements, `aria-label` on icon-only buttons, `prefers-reduced-motion` CSS override in globals
 
 ---
 

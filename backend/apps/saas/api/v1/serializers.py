@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.saas.models import Tenant, User, Membership, Role, Permission, RolePermission
+from apps.saas.models import Tenant, User, Membership, Role, Permission, RolePermission, Plan, PlanFeature
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -65,3 +65,21 @@ class SwitchTenantSerializer(serializers.Serializer):
 
 class AssignPermissionsSerializer(serializers.Serializer):
     permission_ids = serializers.ListField(child=serializers.UUIDField())
+
+
+class PlanFeatureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlanFeature
+        fields = ['id', 'name', 'codename', 'description']
+
+
+class PlanSerializer(serializers.ModelSerializer):
+    features = PlanFeatureSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Plan
+        fields = [
+            'id', 'name', 'slug', 'description',
+            'monthly_price', 'annual_price', 'currency',
+            'is_active', 'features',
+        ]

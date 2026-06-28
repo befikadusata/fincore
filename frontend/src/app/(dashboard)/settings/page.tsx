@@ -7,6 +7,7 @@ import { ProfileTab } from './ProfileTab';
 import { MembersTab } from './MembersTab';
 import { RolesTab } from './RolesTab';
 import { NotificationsTab } from './NotificationsTab';
+import { BillingTab } from './BillingTab';
 
 const TABS = ['profile', 'members', 'roles', 'notifications', 'billing'] as const;
 type Tab = (typeof TABS)[number];
@@ -51,11 +52,7 @@ function TabContent({ tab }: { tab: Tab }) {
   if (tab === 'members') return <MembersTab />;
   if (tab === 'roles') return <RolesTab />;
   if (tab === 'notifications') return <NotificationsTab />;
-  return (
-    <div className="p-6">
-      <p className="text-secondary text-base">Billing settings — coming in Phase 4.7.</p>
-    </div>
-  );
+  return <BillingTab />;
 }
 
 export default function SettingsPage() {

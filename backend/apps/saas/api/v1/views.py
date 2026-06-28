@@ -5,11 +5,11 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from apps.saas.models import Tenant, User, Membership, Role, Permission, RolePermission
+from apps.saas.models import Tenant, User, Membership, Role, Permission, RolePermission, Plan
 from apps.saas.api.v1.serializers import (
     TenantSerializer, UserSerializer, MembershipSerializer,
     RoleSerializer, PermissionSerializer, SwitchTenantSerializer,
-    AssignPermissionsSerializer, RegisterSerializer,
+    AssignPermissionsSerializer, RegisterSerializer, PlanSerializer,
 )
 from apps.saas.services.tenant import TenantService
 from apps.saas.services.membership import MembershipService
@@ -61,6 +61,15 @@ class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsTenantMember]
     queryset = Permission.objects.all()
     pagination_class = None
+
+
+class PlanViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = PlanSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return Plan.objects_unscoped.filter(is_active=True).prefetch_related('features')
 
 
 class MembershipViewSet(viewsets.ModelViewSet):
