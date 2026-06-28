@@ -438,12 +438,12 @@ graph TD
 ---
 
 #### 4.1 Project Setup
-- [ ] Initialize Next.js with App Router + TypeScript (design system token + Tailwind work goes in 4.0, not here)
-- [ ] Configure Tailwind CSS — base config only; CSS variable bridge is part of Task 4.0
-- [ ] Set up TanStack Query provider (`QueryClientProvider` in `app/providers.tsx`)
-- [ ] Set up Zustand stores: `auth` (user, tokens), `tenant` (active tenant, list), `ui` (sidebar open, `theme: 'light' | 'dark'`, `setTheme()`)
-- [ ] Create API client (`src/lib/api.ts`) — axios instance with `NEXT_PUBLIC_API_URL` base URL; request interceptor attaches `Authorization: Bearer <access>`; response interceptor auto-refreshes on 401 using `/api/v1/auth/token/refresh/` then retries original request
-- [ ] Set up Zod schemas in `src/lib/schemas/` mirroring backend serializer validations (loan, repayment, member invite, role)
+- [x] Initialize Next.js with App Router + TypeScript (design system token + Tailwind work goes in 4.0, not here)
+- [x] Configure Tailwind CSS — base config only; CSS variable bridge is part of Task 4.0
+- [x] Set up TanStack Query provider (`QueryClientProvider` in `app/providers.tsx`)
+- [x] Set up Zustand stores: `auth` (user, tokens), `tenant` (active tenant, list), `ui` (sidebar open, `theme: 'light' | 'dark'`, `setTheme()`)
+- [x] Create API client (`src/lib/api.ts`) — axios instance with `NEXT_PUBLIC_API_URL` base URL; request interceptor attaches `Authorization: Bearer <access>`; response interceptor auto-refreshes on 401 using `/api/v1/auth/token/refresh/` then retries original request
+- [x] Set up Zod schemas in `src/lib/schemas/` mirroring backend serializer validations (loan, repayment, member invite, role)
 
 #### 4.2 Auth UI
 - [ ] Login page — `Card` (centered, max-w 400px) wrapping `Input` (email + password with error state), `Button` (primary, full-width, loading state on submit)
