@@ -478,10 +478,10 @@ graph TD
 - [x] **Workflow definitions management** — list as `Table`; definition JSON in a `Modal` (modal-lg) with a `<textarea>` or JSON editor
 
 #### 4.6 Audit & Notifications UI
-- [ ] **Activity log page** — `Table` with: timestamp (`col-date` mono), actor (sans), action (`Badge-neutral`), entity type (sans), entity ID (`col-id` mono), changes summary; filter toolbar: date range + actor search + action `Select`
-- [ ] **Entity history** — embedded in Loan and Wallet detail Drawers as the History tab; calls entity history endpoint; renders as chronological list with same columns as activity log
-- [ ] **Notification bell** — in app header; `nav-item-badge` (design system §6.7) showing unread count in danger styling; Headless UI `Menu` dropdown on click; each item: title (semibold) + time (mono sm); mark-read on item click; `EmptyState` copy: "All clear. No new notifications."
-- [ ] **Notification preferences page** — `Card` per channel (in-app / email) with toggle switches per event type (loan approved, disbursed, repayment due, workflow assigned, payment failed)
+- [x] **Activity log page** — `Table` with: timestamp (`col-date` mono), actor (sans), action (`Badge-neutral`), entity type (sans), entity ID (`col-id` mono), changes summary; filter toolbar: date range + actor search + action `Select`
+- [x] **Entity history** — embedded in Loan and Wallet detail Drawers as the History tab; calls entity history endpoint; renders as chronological list with same columns as activity log
+- [x] **Notification bell** — in app header; `nav-item-badge` (design system §6.7) showing unread count in danger styling; Headless UI `Menu` dropdown on click; each item: title (semibold) + time (mono sm); mark-read on item click; `EmptyState` copy: "All clear. No new notifications."
+- [x] **Notification preferences page** — `Card` per channel (in-app / email) with toggle switches per event type (loan approved, disbursed, repayment due, workflow assigned, payment failed)
 
 #### 4.7 Billing UI
 - [ ] **Subscription status** — `Card` with Status Rail: success (active), warning (past-due), danger (cancelled/expired); shows plan name, renewal date, next invoice amount via `AmountDisplay`

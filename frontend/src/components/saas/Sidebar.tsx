@@ -107,6 +107,7 @@ const NAV: NavSection[] = [
       { href: '/settings', label: 'Profile', icon: <BuildingIcon />, exactMatch: true },
       { href: '/settings?tab=members', label: 'Members', icon: <UsersIcon /> },
       { href: '/settings?tab=roles', label: 'Roles', icon: <LockIcon /> },
+      { href: '/settings?tab=notifications', label: 'Notifications', icon: <BellNavIcon /> },
       { href: '/settings?tab=billing', label: 'Billing', icon: <CreditCardIcon /> },
     ],
   },
@@ -179,6 +180,12 @@ function SidebarSkeleton() {
 }
 
 /* Icons */
+
+function BellNavIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zm0 16a2 2 0 01-1.732-1h3.464A2 2 0 0110 18z" clipRule="evenodd" /></svg>
+  );
+}
 
 function GridIcon() {
   return (

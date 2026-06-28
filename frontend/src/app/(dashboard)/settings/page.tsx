@@ -6,14 +6,16 @@ import { Tabs } from '@/components/ui/Tabs';
 import { ProfileTab } from './ProfileTab';
 import { MembersTab } from './MembersTab';
 import { RolesTab } from './RolesTab';
+import { NotificationsTab } from './NotificationsTab';
 
-const TABS = ['profile', 'members', 'roles', 'billing'] as const;
+const TABS = ['profile', 'members', 'roles', 'notifications', 'billing'] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_LABELS: Record<Tab, string> = {
   profile: 'Profile',
   members: 'Members',
   roles: 'Roles',
+  notifications: 'Notifications',
   billing: 'Billing',
 };
 
@@ -48,6 +50,7 @@ function TabContent({ tab }: { tab: Tab }) {
   if (tab === 'profile') return <ProfileTab />;
   if (tab === 'members') return <MembersTab />;
   if (tab === 'roles') return <RolesTab />;
+  if (tab === 'notifications') return <NotificationsTab />;
   return (
     <div className="p-6">
       <p className="text-secondary text-base">Billing settings — coming in Phase 4.7.</p>
