@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { setAuthCookie, clearAuthCookie } from '@/lib/auth-cookie';
 
 export interface AuthUser {
   id: string;
@@ -25,10 +26,18 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       refreshToken: null,
-      setAuth: (user, accessToken, refreshToken) =>
-        set({ user, accessToken, refreshToken }),
-      setAccessToken: (token) => set({ accessToken: token }),
-      clearAuth: () => set({ user: null, accessToken: null, refreshToken: null }),
+      setAuth: (user, accessToken, refreshToken) => {
+        setAuthCookie(accessToken);
+        set({ user, accessToken, refreshToken });
+      },
+      setAccessToken: (token) => {
+        setAuthCookie(token);
+        set({ accessToken: token });
+      },
+      clearAuth: () => {
+        clearAuthCookie();
+        set({ user: null, accessToken: null, refreshToken: null });
+      },
     }),
     { name: 'fincore-auth' },
   ),

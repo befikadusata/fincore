@@ -446,11 +446,11 @@ graph TD
 - [x] Set up Zod schemas in `src/lib/schemas/` mirroring backend serializer validations (loan, repayment, member invite, role)
 
 #### 4.2 Auth UI
-- [ ] Login page — `Card` (centered, max-w 400px) wrapping `Input` (email + password with error state), `Button` (primary, full-width, loading state on submit)
-- [ ] Registration page — same card pattern; all form fields use `field` / `field-label` / `field-label-required` / `field-error` / `field-hint` structure from design system §6.2; amber focus ring is automatic via `--color-border-focus`
-- [ ] Password reset flow — request email page + reset-with-token page; same card layout
-- [ ] Auth middleware (`middleware.ts`) — checks `access_token` cookie; redirects unauthenticated requests to `/login`; redirects authenticated `/login` to `/dashboard`
-- [ ] JWT refresh interceptor — handled in API client (see 4.1); clears auth store + redirects to `/login` if refresh also fails
+- [x] Login page — `Card` (centered, max-w 400px) wrapping `Input` (email + password with error state), `Button` (primary, full-width, loading state on submit)
+- [x] Registration page — same card pattern; all form fields use `field` / `field-label` / `field-label-required` / `field-error` / `field-hint` structure from design system §6.2; amber focus ring is automatic via `--color-border-focus`
+- [x] Password reset flow — request email page + reset-with-token page; same card layout
+- [x] Auth middleware (`middleware.ts`) — checks `access_token` cookie; redirects unauthenticated requests to `/login`; redirects authenticated `/login` to `/dashboard`
+- [x] JWT refresh interceptor — handled in API client (see 4.1); clears auth store + redirects to `/login` if refresh also fails
 
 #### 4.3 Tenant & SaaS UI
 - [ ] Tenant switcher — in sidebar logo area (design system §6.7): `FinCore` wordmark + `[Tenant Name ▾]` using Headless UI `Menu`; switching calls `/api/v1/tenants/switch/` and updates auth store
