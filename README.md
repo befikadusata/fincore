@@ -1,5 +1,14 @@
 # FinCore
 
+![Backend CI](https://github.com/befikadusata/fincore/actions/workflows/backend.yml/badge.svg)
+![Frontend CI](https://github.com/befikadusata/fincore/actions/workflows/frontend.yml/badge.svg)
+![Django](https://img.shields.io/badge/Django-5.x-092E20?logo=django&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-App_Router-000000?logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+
 **Multi-tenant fintech SaaS platform** for loan lifecycle management, double-entry bookkeeping, and configurable workflow automation.
 
 Built as a Django modular monolith with a Next.js frontend, FinCore demonstrates production-grade fintech architecture: tenant isolation, event-driven processing, compliance-grade audit trails, and an integrated billing system.
