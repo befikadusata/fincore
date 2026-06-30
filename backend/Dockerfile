@@ -10,14 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements/ requirements/
-RUN pip install --no-cache-dir -r requirements/base.txt
-
-COPY . .
-
 RUN groupadd --gid 1000 appuser && \
-    useradd --uid 1000 --gid 1000 --no-create-home appuser && \
-    chown -R appuser:appuser /app
+    useradd --uid 1000 --gid 1000 --no-create-home appuser
+
+COPY requirements/ requirements/
+RUN pip install --no-cache-dir -r requirements/production.txt
+
+COPY --chown=appuser:appuser . .
 
 USER appuser
 

@@ -1,0 +1,40 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyc
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# Django generated
+staticfiles/
+media/
+db.sqlite3
+celerybeat-schedule
+celerybeat-schedule.db
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Secrets — never bake into the image
+.env
+.env.*
+
+# Docs and tooling — not needed at runtime
+docs/
+*.md
+.gitignore
+pytest.ini
+
+# IDE
+.vscode/
+.idea/

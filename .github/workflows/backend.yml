@@ -67,6 +67,9 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements/testing.txt
 
+      - name: Install libpq (required by psycopg[c])
+        run: sudo apt-get install -y --no-install-recommends libpq-dev
+
       - name: Install dependencies
         run: pip install -r requirements/testing.txt
 
