@@ -2,19 +2,20 @@
 export function formatAmount(
   amount: number,
   currency = 'ETB',
-  locale = 'am-ET'
+  locale = 'en-ET'
 ): string {
   try {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
+      currencyDisplay: 'code',
       minimumFractionDigits: 2,
     }).format(amount / 100);
   } catch {
-    // Fallback for locales unsupported by the runtime
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
+      currencyDisplay: 'code',
       minimumFractionDigits: 2,
     }).format(amount / 100);
   }
