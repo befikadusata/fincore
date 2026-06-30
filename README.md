@@ -20,6 +20,14 @@ FinCore gives organizations a full lending operation out of the box:
 
 ---
 
+## Screenshots
+
+![Loan management with detail drawer](docs/screenshots/loans.png)
+![Role & permission management](docs/screenshots/roles.png)
+![Subscription billing](docs/screenshots/billing.png)
+
+---
+
 ## Tech Stack
 
 ### Backend
@@ -159,28 +167,33 @@ Full spec: [`docs/ui_design_system.md`](docs/ui_design_system.md)
 
 ## Getting Started
 
-Requires Docker and Docker Compose.
+Requires Docker, Docker Compose v2, and Node.js 22+.
 
 ```bash
 # Clone and configure
 git clone <repo-url> && cd fincore
-cp backend/.env.example backend/.env
+cp .env.example .env          # edit ENCRYPTION_KEY and optionally HOST_*_PORT values
 
 # Start the full stack (Django + PostgreSQL + Redis + Celery)
-docker-compose -f docker/docker-compose.yml up --build
+docker compose -f docker/docker-compose.yml up --build -d
 
-# Run migrations and create a superuser
-docker-compose exec web python manage.py migrate
-docker-compose exec web python manage.py createsuperuser
+# Run migrations
+docker compose -f docker/docker-compose.yml exec django python manage.py migrate
+
+# Create a superuser (interactive)
+docker compose -f docker/docker-compose.yml exec -it django python manage.py createsuperuser
+
+# (Optional) Seed demo data for a registered user
+docker compose -f docker/docker-compose.yml exec django python seed_demo.py
 
 # Run the test suite
-docker-compose exec web pytest
+docker compose -f docker/docker-compose.yml exec django pytest
 
 # Start the frontend (separate terminal)
 cd frontend && npm install && npm run dev
 ```
 
-The API is available at `http://localhost:8000/api/v1/` and the frontend at `http://localhost:3000`.
+The API is available at `http://localhost:8000/api/v1/` (or whatever `HOST_DJANGO_PORT` is set to) and the frontend at `http://localhost:3000`.
 
 ---
 
