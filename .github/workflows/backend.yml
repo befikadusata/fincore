@@ -1,0 +1,77 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: fincore
+          POSTGRES_USER: fincore
+          POSTGRES_PASSWORD: fincore
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fincore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SECRET_KEY: ci-secret-key-not-for-production
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+      DATABASE_URL: postgres://fincore:fincore@localhost:5432/fincore
+      CELERY_BROKER_URL: redis://localhost:6379/0
+      CELERY_RESULT_BACKEND: redis://localhost:6379/0
+      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      CHAPA_SECRET_KEY: test
+      CHAPA_WEBHOOK_SECRET: test
+      FRONTEND_URL: http://localhost:3000
+      BACKEND_URL: http://localhost:8000
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements/testing.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/testing.txt
+
+      - name: Run migrations
+        run: python manage.py migrate --no-input
+
+      - name: Run tests
+        run: pytest --cov=. --cov-report=term-missing
