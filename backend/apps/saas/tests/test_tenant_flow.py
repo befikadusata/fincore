@@ -11,7 +11,7 @@ def test_create_tenant_flow():
     client = APIClient()
     client.force_authenticate(user)
 
-    response = client.post('/api/v1/saas/tenants/', {
+    response = client.post('/api/v1/tenants/', {
         'name': 'Acme Corp',
         'slug': 'acme',
     })
@@ -34,7 +34,7 @@ def test_list_user_tenants():
 
     client = APIClient()
     client.force_authenticate(user)
-    response = client.get('/api/v1/saas/tenants/')
+    response = client.get('/api/v1/tenants/')
     assert response.status_code == 200
     assert len(response.data['results']) == 2
 
@@ -49,7 +49,7 @@ def test_switch_tenant():
 
     client = APIClient()
     client.force_authenticate(user)
-    response = client.post('/api/v1/saas/tenants/switch/', {'tenant_id': str(t2.id)})
+    response = client.post('/api/v1/tenants/switch/', {'tenant_id': str(t2.id)})
     assert response.status_code == 200
     assert 'access' in response.data
     assert 'refresh' in response.data
@@ -62,5 +62,5 @@ def test_switch_tenant_not_member():
 
     client = APIClient()
     client.force_authenticate(user)
-    response = client.post('/api/v1/saas/tenants/switch/', {'tenant_id': str(other.id)})
+    response = client.post('/api/v1/tenants/switch/', {'tenant_id': str(other.id)})
     assert response.status_code == 403

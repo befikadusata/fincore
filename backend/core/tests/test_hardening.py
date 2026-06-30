@@ -8,7 +8,7 @@ from apps.saas.models import User
 
 @pytest.mark.django_db
 class TestRegisterValidation:
-    url = '/api/v1/saas/auth/register/'
+    url = '/api/v1/auth/register/'
 
     def test_short_password_rejected(self):
         client = APIClient()

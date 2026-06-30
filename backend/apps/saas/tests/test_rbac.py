@@ -81,7 +81,7 @@ def test_assign_permissions_requires_permission(tenant_and_user):
 
     # Plain member with no roles:assign_permissions — must be rejected
     response = client.post(
-        f'/api/v1/saas/roles/{role.id}/assign_permissions/',
+        f'/api/v1/roles/{role.id}/assign_permissions/',
         {'permission_ids': [str(perm.id)]},
         format='json',
         HTTP_X_TENANT_ID=str(tenant.id),
@@ -107,7 +107,7 @@ def test_assign_permissions_allowed_with_permission(tenant_and_user):
     client.force_authenticate(user)
 
     response = client.post(
-        f'/api/v1/saas/roles/{role.id}/assign_permissions/',
+        f'/api/v1/roles/{role.id}/assign_permissions/',
         {'permission_ids': [str(perm1.id), str(perm2.id)]},
         format='json',
         HTTP_X_TENANT_ID=str(tenant.id),
@@ -128,7 +128,7 @@ def test_assign_members_requires_permission(tenant_and_user):
 
     # Plain member with no roles:assign_members — must be rejected
     response = client.post(
-        f'/api/v1/saas/roles/{role.id}/assign_members/',
+        f'/api/v1/roles/{role.id}/assign_members/',
         {'user_ids': [str(target.id)]},
         format='json',
         HTTP_X_TENANT_ID=str(tenant.id),
@@ -154,7 +154,7 @@ def test_assign_members_allowed_with_permission(tenant_and_user):
     client.force_authenticate(user)
 
     response = client.post(
-        f'/api/v1/saas/roles/{role.id}/assign_members/',
+        f'/api/v1/roles/{role.id}/assign_members/',
         {'user_ids': [str(target.id)]},
         format='json',
         HTTP_X_TENANT_ID=str(tenant.id),

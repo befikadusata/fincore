@@ -5,7 +5,7 @@ from apps.saas.models import User
 @pytest.mark.django_db
 def test_user_registration():
     client = APIClient()
-    url = '/api/v1/saas/auth/register/'
+    url = '/api/v1/auth/register/'
     data = {'email': 'test@example.com', 'password': 'Testpassword123'}
 
     response = client.post(url, data)

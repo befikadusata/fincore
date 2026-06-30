@@ -6,8 +6,8 @@ from rest_framework.test import APIClient
 from apps.saas.models import User
 
 TOKEN_URL = '/api/v1/auth/token/'
-REGISTER_URL = '/api/v1/saas/auth/register/'
-LOGOUT_URL = '/api/v1/saas/auth/logout/'
+REGISTER_URL = '/api/v1/auth/register/'
+LOGOUT_URL = '/api/v1/auth/logout/'
 
 
 def _obtain_tokens(email, password):

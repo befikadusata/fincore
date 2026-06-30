@@ -58,10 +58,10 @@ def test_tenant_scoped_endpoint_rejected_without_context(user_and_tenant):
 
     # No X-Tenant-ID header, no JWT — tenant context is empty
     # IsTenantMember on the viewset rejects all actions
-    response = client.get('/api/v1/saas/roles/')
+    response = client.get('/api/v1/roles/')
     assert response.status_code == 403
 
-    response = client.post('/api/v1/saas/roles/', {
+    response = client.post('/api/v1/roles/', {
         'name': 'Hacker', 'slug': 'hacker',
     })
     assert response.status_code == 403
@@ -75,7 +75,7 @@ def test_invalid_tenant_id_rejected(user_and_tenant):
 
     fake_id = '00000000-0000-0000-0000-000000000000'
     response = client.get(
-        '/api/v1/saas/members/',
+        '/api/v1/members/',
         HTTP_X_TENANT_ID=fake_id,
     )
     # No membership exists for this fake tenant — IsTenantMember returns False

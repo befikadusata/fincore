@@ -19,7 +19,7 @@ def test_invite_member(tenant_and_owner):
     client.force_authenticate(owner)
 
     response = client.post(
-        '/api/v1/saas/members/invite/',
+        '/api/v1/members/invite/',
         {'email': 'new@test.com'},
         HTTP_X_TENANT_ID=str(tenant.id),
     )
@@ -41,7 +41,7 @@ def test_remove_member(tenant_and_owner):
     client.force_authenticate(owner)
 
     response = client.post(
-        f'/api/v1/saas/members/{membership.id}/remove/',
+        f'/api/v1/members/{membership.id}/remove/',
         HTTP_X_TENANT_ID=str(tenant.id),
     )
     assert response.status_code == 204
@@ -55,7 +55,7 @@ def test_me_endpoint(tenant_and_owner):
     client = APIClient()
     client.force_authenticate(owner)
 
-    response = client.get('/api/v1/saas/auth/me/')
+    response = client.get('/api/v1/auth/me/')
     assert response.status_code == 200
     assert response.data['user']['email'] == 'owner@test.com'
     assert len(response.data['tenants']) == 1
