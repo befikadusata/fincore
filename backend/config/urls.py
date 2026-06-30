@@ -15,13 +15,13 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    # App API routes
-    path('api/v1/saas/', include('apps.saas.api.v1.urls')),
+    # App API routes — specific prefixes first, saas catch-all last
     path('api/v1/finance/', include('apps.finance.api.v1.urls')),
     path('api/v1/workflow/', include('apps.workflow.api.v1.urls')),
     path('api/v1/audit/', include('apps.audit.api.v1.urls')),
     path('api/v1/events/', include('apps.events.api.v1.urls')),
     path('api/v1/notifications/', include('apps.notifications.api.v1.urls')),
     path('api/v1/billing/', include('apps.billing.api.v1.urls')),
+    path('api/v1/', include('apps.saas.api.v1.urls')),
     path('api/v1/webhooks/chapa/', ChapaWebhookView.as_view(), name='chapa-webhook'),
 ]

@@ -73,6 +73,18 @@ export function LoanDetailDrawer({ open, onClose, loan, onUpdated }: LoanDetailD
   const { toast } = useToast();
   const [showRepay, setShowRepay] = useState(false);
 
+  const { data: freshLoan } = useQuery({
+    queryKey: ['loan', loan?.id],
+    queryFn: async () => {
+      const { data } = await api.get<Loan>(`/api/v1/finance/loans/${loan!.id}/`);
+      return data;
+    },
+    enabled: open && !!loan?.id,
+    staleTime: 0,
+  });
+
+  const currentLoan = freshLoan ?? loan!;
+
   const { data: schedule } = useQuery({
     queryKey: ['loan-schedule', loan?.id],
     queryFn: async () => {
@@ -95,8 +107,9 @@ export function LoanDetailDrawer({ open, onClose, loan, onUpdated }: LoanDetailD
 
   function useLoanAction(action: string, successMsg: string) {
     return useMutation({
-      mutationFn: () => api.post(`/api/v1/finance/loans/${loan!.id}/${action}/`),
+      mutationFn: () => api.post(`/api/v1/finance/loans/${currentLoan.id}/${action}/`),
       onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ['loan', currentLoan.id] });
         qc.invalidateQueries({ queryKey: ['loans'] });
         qc.invalidateQueries({ queryKey: ['loan-summary'] });
         toast.success(successMsg);
@@ -118,10 +131,10 @@ export function LoanDetailDrawer({ open, onClose, loan, onUpdated }: LoanDetailD
 
   const repayMutation = useMutation({
     mutationFn: (amount: string) =>
-      api.post(`/api/v1/finance/loans/${loan!.id}/repay/`, { amount }),
+      api.post(`/api/v1/finance/loans/${currentLoan.id}/repay/`, { amount }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['loans'] });
-      qc.invalidateQueries({ queryKey: ['loan-schedule', loan?.id] });
+      qc.invalidateQueries({ queryKey: ['loan-schedule', currentLoan.id] });
       qc.invalidateQueries({ queryKey: ['loan-summary'] });
       toast.success('Payment recorded');
       setShowRepay(false);
@@ -146,39 +159,39 @@ export function LoanDetailDrawer({ open, onClose, loan, onUpdated }: LoanDetailD
   })) ?? [];
 
   const infoRows: Array<{ label: string; value: React.ReactNode }> = [
-    { label: 'Product', value: loan.product_name ?? '—' },
-    { label: 'Borrower', value: loan.borrower_name ?? '—' },
-    { label: 'Principal', value: <AmountDisplay amount={m(loan.principal_amount)} /> },
-    { label: 'Interest', value: <AmountDisplay amount={m(loan.interest_amount)} /> },
-    { label: 'Total', value: <AmountDisplay amount={m(loan.total_amount)} /> },
-    { label: 'Outstanding', value: <AmountDisplay amount={m(loan.outstanding_balance)} /> },
-    { label: 'Term', value: `${loan.term_months} months` },
-    { label: 'Currency', value: loan.currency },
-    ...(loan.submitted_at ? [{ label: 'Submitted', value: formatDate(loan.submitted_at) }] : []),
-    ...(loan.approved_at ? [{ label: 'Approved', value: formatDate(loan.approved_at) }] : []),
-    ...(loan.disbursed_at ? [{ label: 'Disbursed', value: formatDate(loan.disbursed_at) }] : []),
-    ...(loan.completed_at ? [{ label: 'Completed', value: formatDate(loan.completed_at) }] : []),
-    ...(loan.notes ? [{ label: 'Notes', value: loan.notes }] : []),
+    { label: 'Product', value: currentLoan.product_name ?? '—' },
+    { label: 'Borrower', value: currentLoan.borrower_name ?? '—' },
+    { label: 'Principal', value: <AmountDisplay amount={m(currentLoan.principal_amount)} /> },
+    { label: 'Interest', value: <AmountDisplay amount={m(currentLoan.interest_amount)} /> },
+    { label: 'Total', value: <AmountDisplay amount={m(currentLoan.total_amount)} /> },
+    { label: 'Outstanding', value: <AmountDisplay amount={m(currentLoan.outstanding_balance)} /> },
+    { label: 'Term', value: `${currentLoan.term_months} months` },
+    { label: 'Currency', value: currentLoan.currency },
+    ...(currentLoan.submitted_at ? [{ label: 'Submitted', value: formatDate(currentLoan.submitted_at) }] : []),
+    ...(currentLoan.approved_at ? [{ label: 'Approved', value: formatDate(currentLoan.approved_at) }] : []),
+    ...(currentLoan.disbursed_at ? [{ label: 'Disbursed', value: formatDate(currentLoan.disbursed_at) }] : []),
+    ...(currentLoan.completed_at ? [{ label: 'Completed', value: formatDate(currentLoan.completed_at) }] : []),
+    ...(currentLoan.notes ? [{ label: 'Notes', value: currentLoan.notes }] : []),
   ];
 
   const footer = (
     <div className="flex gap-3">
-      {loan.status === 'CREATED' && (
+      {currentLoan.status === 'created' && (
         <Button variant="primary" onClick={() => submitMutation.mutate()} loading={submitMutation.isPending}>
           Submit for review
         </Button>
       )}
-      {(loan.status === 'SUBMITTED' || loan.status === 'UNDER_REVIEW') && (
+      {(currentLoan.status === 'submitted' || currentLoan.status === 'under_review') && (
         <Button variant="primary" onClick={() => approveMutation.mutate()} loading={approveMutation.isPending}>
           Approve
         </Button>
       )}
-      {loan.status === 'APPROVED' && (
+      {currentLoan.status === 'approved' && (
         <Button variant="primary" onClick={() => disburseMutation.mutate()} loading={disburseMutation.isPending}>
           Disburse
         </Button>
       )}
-      {(loan.status === 'DISBURSED' || loan.status === 'ACTIVE') && (
+      {(currentLoan.status === 'disbursed' || currentLoan.status === 'active') && (
         <Button variant="primary" onClick={() => setShowRepay(true)}>
           Record repayment
         </Button>
@@ -188,22 +201,22 @@ export function LoanDetailDrawer({ open, onClose, loan, onUpdated }: LoanDetailD
 
   return (
     <>
-      <Drawer open={open} onClose={onClose} title={formatLoanId(loan.id)} footer={footer}>
+      <Drawer open={open} onClose={onClose} title={formatLoanId(currentLoan.id)} footer={footer}>
         <div className="flex flex-col gap-6">
           {/* Status + timeline */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <LoanStatusBadge status={loan.status} />
-              <span className="text-sm text-tertiary font-mono">{formatDate(loan.created_at)}</span>
+              <LoanStatusBadge status={currentLoan.status} />
+              <span className="text-sm text-tertiary font-mono">{formatDate(currentLoan.created_at)}</span>
             </div>
-            <LoanTimeline currentStatus={loan.status} />
+            <LoanTimeline currentStatus={currentLoan.status} />
           </div>
 
           {/* Key amounts summary */}
           <div className="grid grid-cols-3 gap-3">
-            <AmountSummary label="Principal" value={formatAmount(m(loan.principal_amount))} />
-            <AmountSummary label="Total" value={formatAmount(m(loan.total_amount))} />
-            <AmountSummary label="Outstanding" value={formatAmount(m(loan.outstanding_balance))} />
+            <AmountSummary label="Principal" value={formatAmount(m(currentLoan.principal_amount))} />
+            <AmountSummary label="Total" value={formatAmount(m(currentLoan.total_amount))} />
+            <AmountSummary label="Outstanding" value={formatAmount(m(currentLoan.outstanding_balance))} />
           </div>
 
           {/* Tabs */}
@@ -271,7 +284,7 @@ export function LoanDetailDrawer({ open, onClose, loan, onUpdated }: LoanDetailD
       <RepaymentModal
         open={showRepay}
         onClose={() => setShowRepay(false)}
-        loan={loan}
+        loan={currentLoan}
         onSubmit={(amount) => repayMutation.mutate(amount)}
         loading={repayMutation.isPending}
       />

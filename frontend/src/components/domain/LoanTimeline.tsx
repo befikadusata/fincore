@@ -5,13 +5,13 @@ interface LoanTimelineProps {
 }
 
 const STATE_LABELS: Record<string, string> = {
-  CREATED:      'Created',
-  SUBMITTED:    'Submitted',
-  UNDER_REVIEW: 'Under Review',
-  APPROVED:     'Approved',
-  DISBURSED:    'Disbursed',
-  ACTIVE:       'Active',
-  COMPLETED:    'Completed',
+  created:      'Created',
+  submitted:    'Submitted',
+  under_review: 'Under Review',
+  approved:     'Approved',
+  disbursed:    'Disbursed',
+  active:       'Active',
+  completed:    'Completed',
 };
 
 export function LoanTimeline({ currentStatus }: LoanTimelineProps) {
@@ -21,7 +21,7 @@ export function LoanTimeline({ currentStatus }: LoanTimelineProps) {
   return (
     <div className="flex items-start gap-0 overflow-x-auto pb-2" role="list" aria-label="Loan timeline">
       {LOAN_STATES.map((state, idx) => {
-        const isCompleted = idx < currentIdx || (currentStatus === 'COMPLETED' && idx <= LOAN_STATES.length - 1);
+        const isCompleted = idx < currentIdx || (currentStatus === 'completed' && idx <= LOAN_STATES.length - 1);
         const isCurrent = state === currentStatus;
         const isPast = !isTerminal && idx < currentIdx;
 

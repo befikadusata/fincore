@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from apps.finance.models import Loan, LoanProduct, RepaymentSchedule
 from apps.finance.models.wallet import Wallet
+from apps.saas.models import User
 
 
 class LoanProductSerializer(serializers.ModelSerializer):
@@ -53,6 +54,9 @@ class LoanProductSerializer(serializers.ModelSerializer):
 
 
 class LoanSerializer(serializers.ModelSerializer):
+    borrower = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False
+    )
     borrower_name = serializers.SerializerMethodField()
     product_name = serializers.SerializerMethodField()
 

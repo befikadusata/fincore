@@ -1,16 +1,16 @@
 export type BadgeVariant = 'success' | 'info' | 'warning' | 'danger' | 'neutral' | 'purple';
 
 const LOAN_STATUS_MAP: Record<string, BadgeVariant> = {
-  CREATED:      'neutral',
-  SUBMITTED:    'info',
-  UNDER_REVIEW: 'purple',
-  APPROVED:     'success',
-  DISBURSED:    'success',
-  ACTIVE:       'success',
-  COMPLETED:    'neutral',
-  REJECTED:     'danger',
-  DEFAULTED:    'danger',
-  OVERDUE:      'warning',
+  created:      'neutral',
+  submitted:    'info',
+  under_review: 'purple',
+  approved:     'success',
+  disbursed:    'success',
+  active:       'success',
+  completed:    'neutral',
+  rejected:     'danger',
+  defaulted:    'danger',
+  overdue:      'warning',
 };
 
 export function loanStatusVariant(status: string): BadgeVariant {
@@ -33,13 +33,13 @@ export function loanStatusRailClass(status: string): string {
 
 /** Ordered loan state machine steps for LoanTimeline. */
 export const LOAN_STATES = [
-  'CREATED',
-  'SUBMITTED',
-  'UNDER_REVIEW',
-  'APPROVED',
-  'DISBURSED',
-  'ACTIVE',
-  'COMPLETED',
+  'created',
+  'submitted',
+  'under_review',
+  'approved',
+  'disbursed',
+  'active',
+  'completed',
 ] as const;
 
-export const LOAN_TERMINAL_STATES = ['REJECTED', 'DEFAULTED'] as const;
+export const LOAN_TERMINAL_STATES = ['rejected', 'defaulted'] as const;
