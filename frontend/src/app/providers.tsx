@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { syncThemeStore } from '@/stores/ui';
 import { ToastProvider } from '@/components/ui/Toast';

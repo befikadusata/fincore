@@ -128,7 +128,7 @@ class RoleViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=['post'],
-        permission_classes=[permissions.IsAuthenticated, IsTenantMember],
+        permission_classes=[permissions.IsAuthenticated, IsTenantMember, HasPermission.of('roles:assign_permissions')],
     )
     def assign_permissions(self, request, pk=None):
         role = self.get_object()

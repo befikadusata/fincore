@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { useTenantStore } from '@/stores/tenant';
@@ -14,8 +14,6 @@ export function ProfileTab() {
   const { user, setAuth, accessToken, refreshToken } = useAuthStore();
   const { activeTenant } = useTenantStore();
   const { toast } = useToast();
-  const qc = useQueryClient();
-
   const [firstName, setFirstName] = useState(user?.first_name ?? '');
   const [lastName, setLastName] = useState(user?.last_name ?? '');
 

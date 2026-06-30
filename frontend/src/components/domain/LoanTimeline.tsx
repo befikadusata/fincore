@@ -1,4 +1,4 @@
-import { LOAN_STATES, LOAN_TERMINAL_STATES, loanStatusVariant } from '@/lib/status';
+import { LOAN_STATES, LOAN_TERMINAL_STATES } from '@/lib/status';
 
 interface LoanTimelineProps {
   currentStatus: string;
