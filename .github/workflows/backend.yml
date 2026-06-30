@@ -41,16 +41,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    # Non-sensitive CI-only values. SECRET_KEY and ENCRYPTION_KEY are
+    # generated fresh per run in the "Generate CI secrets" step below.
     env:
-      SECRET_KEY: ci-secret-key-not-for-production
       DEBUG: "True"
       ALLOWED_HOSTS: "*"
       DATABASE_URL: postgres://fincore:fincore@localhost:5432/fincore
       CELERY_BROKER_URL: redis://localhost:6379/0
       CELERY_RESULT_BACKEND: redis://localhost:6379/0
-      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-      CHAPA_SECRET_KEY: test
-      CHAPA_WEBHOOK_SECRET: test
+      CHAPA_SECRET_KEY: ci-test-only
+      CHAPA_WEBHOOK_SECRET: ci-test-only
       FRONTEND_URL: http://localhost:3000
       BACKEND_URL: http://localhost:8000
 
@@ -69,6 +69,11 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements/testing.txt
+
+      - name: Generate CI secrets
+        run: |
+          echo "SECRET_KEY=$(python -c 'import secrets; print(secrets.token_urlsafe(50))')" >> $GITHUB_ENV
+          echo "ENCRYPTION_KEY=$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" >> $GITHUB_ENV
 
       - name: Run migrations
         run: python manage.py migrate --no-input
