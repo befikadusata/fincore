@@ -5,12 +5,31 @@ from decimal import Decimal
 
 import requests
 from django.conf import settings
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from apps.billing.services.gateways.base import PaymentGateway, PaymentInitResult, PaymentVerifyResult
 
 logger = logging.getLogger(__name__)
 
 CHAPA_BASE_URL = 'https://api.chapa.co/v1'
+CHAPA_TIMEOUT = 30
+
+# Chapa keys transactions on tx_ref, so replaying an initialize is safe: a retry
+# after a dropped connection or a gateway 5xx re-uses the same reference instead
+# of opening a second transaction. 4xx and Chapa-level errors are not retried.
+_RETRY = Retry(
+    total=3,
+    connect=3,
+    read=3,
+    backoff_factor=0.5,  # sleeps 0.5s, 1s, 2s
+    status_forcelist=(502, 503, 504),
+    allowed_methods=frozenset({'GET', 'POST'}),
+)
+
+_SESSION = requests.Session()
+_SESSION.mount('https://', HTTPAdapter(max_retries=_RETRY))
+_SESSION.mount('http://', HTTPAdapter(max_retries=_RETRY))
 
 
 class ChapaGateway(PaymentGateway):
@@ -49,11 +68,11 @@ class ChapaGateway(PaymentGateway):
             'return_url': return_url or callback_url,
         }
 
-        response = requests.post(
+        response = _SESSION.post(
             f'{CHAPA_BASE_URL}/transaction/initialize',
             json=payload,
             headers=self._headers(),
-            timeout=30,
+            timeout=CHAPA_TIMEOUT,
         )
         response.raise_for_status()
         data = response.json()
@@ -67,10 +86,10 @@ class ChapaGateway(PaymentGateway):
         )
 
     def verify_payment(self, reference: str) -> PaymentVerifyResult:
-        response = requests.get(
+        response = _SESSION.get(
             f'{CHAPA_BASE_URL}/transaction/verify/{reference}',
             headers=self._headers(),
-            timeout=30,
+            timeout=CHAPA_TIMEOUT,
         )
         response.raise_for_status()
         data = response.json()
