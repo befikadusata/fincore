@@ -18,6 +18,10 @@ from apps.billing.services.billing_service import BillingService
 from apps.billing.services.gateways.chapa import ChapaGateway
 from apps.saas.models import Membership, Plan, PlanFeature, Tenant, User
 
+# Chapa calls go through a retry-configured session, so mock the boundary there.
+_CHAPA_POST = 'apps.billing.services.gateways.chapa._SESSION.post'
+_CHAPA_GET = 'apps.billing.services.gateways.chapa._SESSION.get'
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -200,7 +204,7 @@ class TestChapaGateway:
             'status': 'success',
             'data': {'checkout_url': 'https://checkout.chapa.co/pay/abc'},
         }
-        with patch('requests.post', return_value=mock_resp):
+        with patch(_CHAPA_POST, return_value=mock_resp):
             result = gateway.initialize_payment(
                 amount=Decimal('500.00'),
                 currency='ETB',
@@ -216,7 +220,7 @@ class TestChapaGateway:
         gateway = ChapaGateway(secret_key='test-key', webhook_secret='secret')
         mock_resp = MagicMock()
         mock_resp.json.return_value = {'status': 'error', 'message': 'Bad request'}
-        with patch('requests.post', return_value=mock_resp):
+        with patch(_CHAPA_POST, return_value=mock_resp):
             with pytest.raises(ValueError, match='Chapa initialization failed'):
                 gateway.initialize_payment(
                     amount=Decimal('500.00'),
@@ -233,7 +237,7 @@ class TestChapaGateway:
             'status': 'success',
             'data': {'status': 'success', 'amount': '500.00', 'currency': 'ETB'},
         }
-        with patch('requests.get', return_value=mock_resp):
+        with patch(_CHAPA_GET, return_value=mock_resp):
             result = gateway.verify_payment('REF-001')
         assert result.status == 'success'
         assert result.amount == Decimal('500.00')
@@ -243,7 +247,7 @@ class TestChapaGateway:
         gateway = ChapaGateway(secret_key='test-key', webhook_secret='secret')
         mock_resp = MagicMock()
         mock_resp.json.return_value = {'status': 'error', 'message': 'Not found'}
-        with patch('requests.get', return_value=mock_resp):
+        with patch(_CHAPA_GET, return_value=mock_resp):
             result = gateway.verify_payment('BAD-REF')
         assert result.status == 'failed'
 
@@ -270,7 +274,7 @@ class TestChapaGateway:
             'status': 'success',
             'data': {'checkout_url': 'https://checkout.chapa.co/x'},
         }
-        with patch('requests.post', return_value=mock_resp) as mock_post:
+        with patch(_CHAPA_POST, return_value=mock_resp) as mock_post:
             gateway.initialize_payment(
                 amount=Decimal('1000'),
                 currency='ETB',
@@ -353,6 +357,48 @@ class TestWebhookProcessing:
         assert record.status == PaymentStatus.FAILED
         invoice.refresh_from_db()
         assert invoice.status == InvoiceStatus.ISSUED
+
+    def test_replayed_success_webhook_is_a_no_op(self, db, subscription):
+        """Chapa retries deliveries; the second one must not re-settle the invoice."""
+        secret = 'secret'
+        invoice, _ = self._create_invoice_and_record(subscription, 'INV-BB-202606-0010')
+        payload, sig = _make_signed_payload(
+            {'tx_ref': 'INV-BB-202606-0010', 'status': 'success'}, secret
+        )
+        gateway = ChapaGateway(secret_key='k', webhook_secret=secret)
+
+        BillingService.process_webhook(payload, sig, gateway)
+        invoice.refresh_from_db()
+        first_paid_at = invoice.paid_at
+
+        BillingService.process_webhook(payload, sig, gateway)
+
+        invoice.refresh_from_db()
+        assert invoice.status == InvoiceStatus.PAID
+        assert invoice.paid_at == first_paid_at
+        assert PaymentRecord.objects_unscoped.filter(
+            gateway_reference='INV-BB-202606-0010'
+        ).count() == 1
+
+    def test_late_failed_webhook_does_not_unsettle_paid_invoice(self, db, subscription):
+        """Out-of-order delivery must never downgrade a completed payment."""
+        secret = 'secret'
+        invoice, _ = self._create_invoice_and_record(subscription, 'INV-BB-202606-0011')
+        gateway = ChapaGateway(secret_key='k', webhook_secret=secret)
+
+        success, success_sig = _make_signed_payload(
+            {'tx_ref': 'INV-BB-202606-0011', 'status': 'success'}, secret
+        )
+        BillingService.process_webhook(success, success_sig, gateway)
+
+        stale, stale_sig = _make_signed_payload(
+            {'tx_ref': 'INV-BB-202606-0011', 'status': 'failed'}, secret
+        )
+        record = BillingService.process_webhook(stale, stale_sig, gateway)
+
+        assert record.status == PaymentStatus.COMPLETED
+        invoice.refresh_from_db()
+        assert invoice.status == InvoiceStatus.PAID
 
     def test_invalid_signature_raises_value_error(self, db, subscription):
         gateway = ChapaGateway(secret_key='key', webhook_secret='real-secret')

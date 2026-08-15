@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import timedelta
 from decimal import Decimal
@@ -17,6 +18,13 @@ _BILLING_CYCLE_MONTHS = {
     BillingCycle.QUARTERLY: 3,
     BillingCycle.ANNUALLY: 12,
 }
+
+# A payment only moves forward. Chapa retries webhooks and can deliver them out
+# of order, so a late 'pending' or 'failed' must never undo a settled payment.
+_TERMINAL_PAYMENT_STATUSES = frozenset({
+    PaymentStatus.COMPLETED,
+    PaymentStatus.REFUNDED,
+})
 
 
 def _generate_invoice_number(tenant) -> str:
@@ -103,16 +111,38 @@ class BillingService:
         if not gateway.validate_webhook_signature(payload, signature):
             raise ValueError('Invalid webhook signature')
 
-        import json
         data = json.loads(payload)
         tx_ref = data.get('tx_ref') or data.get('trx_ref') or data.get('reference', '')
         chapa_status = data.get('status', '')
 
-        record = PaymentRecord.objects_unscoped.filter(gateway_reference=tx_ref).first()
-        if not record:
-            invoice = Invoice.objects_unscoped.filter(invoice_number=tx_ref).first()
+        # Every webhook for a given tx_ref resolves to the same invoice, so
+        # locking it first serialises concurrent deliveries -- both the record
+        # creation below and the status transition after it.
+        invoice_id = (
+            PaymentRecord.objects_unscoped
+            .filter(gateway_reference=tx_ref)
+            .values_list('invoice_id', flat=True)
+            .first()
+        )
+        if invoice_id:
+            invoice = Invoice.objects_unscoped.select_for_update().get(pk=invoice_id)
+        else:
+            invoice = (
+                Invoice.objects_unscoped.select_for_update()
+                .filter(invoice_number=tx_ref)
+                .first()
+            )
             if not invoice:
                 raise ValueError(f'No invoice or payment record found for reference: {tx_ref}')
+
+        # Re-read under the invoice lock: a concurrent delivery may have created
+        # the record while we were waiting for it.
+        record = (
+            PaymentRecord.objects_unscoped.select_for_update()
+            .filter(gateway_reference=tx_ref)
+            .first()
+        )
+        if not record:
             record = PaymentRecord.objects_unscoped.create(
                 tenant=invoice.tenant,
                 invoice=invoice,
@@ -129,12 +159,18 @@ class BillingService:
             'failed': PaymentStatus.FAILED,
         }.get(chapa_status.lower(), PaymentStatus.PENDING)
 
+        if record.status in _TERMINAL_PAYMENT_STATUSES:
+            logger.info(
+                'Ignoring %s webhook for %s: payment already %s',
+                mapped_status, tx_ref, record.status,
+            )
+            return record
+
         record.status = mapped_status
         record.metadata = data
         record.save(update_fields=['status', 'metadata', 'updated_at'])
 
         if mapped_status == PaymentStatus.COMPLETED:
-            invoice = record.invoice
             invoice.status = InvoiceStatus.PAID
             invoice.paid_at = timezone.now()
             invoice.save(update_fields=['status', 'paid_at', 'updated_at'])
