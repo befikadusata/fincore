@@ -38,9 +38,8 @@ def user(db):
 
 
 @pytest.fixture
-def plan(tenant):
-    return Plan.objects_unscoped.create(
-        tenant=tenant,
+def plan(db):
+    return Plan.objects.create(
         name='Pro',
         slug='pro',
         monthly_price=5000,
@@ -105,8 +104,8 @@ class TestSubscriptionLifecycle:
         assert delta.days >= 89  # ~3 months
 
     def test_change_plan_updates_plan(self, db, tenant, plan, subscription):
-        new_plan = Plan.objects_unscoped.create(
-            tenant=tenant, name='Enterprise', slug='enterprise',
+        new_plan = Plan.objects.create(
+            name='Enterprise', slug='enterprise',
             monthly_price=10000, annual_price=100000, currency='ETB',
         )
         updated = BillingService.change_plan(subscription, new_plan)
@@ -554,8 +553,8 @@ class TestSubscriptionAPI:
         assert response.data['status'] == SubscriptionStatus.CANCELLED
 
     def test_change_plan_action(self, db, tenant, user, subscription):
-        new_plan = Plan.objects_unscoped.create(
-            tenant=tenant, name='Enterprise', slug='enterprise',
+        new_plan = Plan.objects.create(
+            name='Enterprise', slug='enterprise',
             monthly_price=10000, annual_price=100000, currency='ETB',
         )
         client = self._authed_client(user, tenant)

@@ -270,11 +270,10 @@ plans_def = [
 starter_plan = None
 for p in plans_def:
     features = p.pop("features")
-    # Plans are global (unscoped) — use a system-level tenant or null tenant trick
-    # The PlanViewSet uses objects_unscoped; create with a dummy tenant lookup
-    plan = Plan.objects_unscoped.filter(slug=p["slug"]).first()
+    # Plans are a global, platform-owned catalogue shared by every tenant.
+    plan = Plan.objects.filter(slug=p["slug"]).first()
     if not plan:
-        plan = Plan.objects_unscoped.create(tenant=tenant, **p)
+        plan = Plan.objects.create(**p)
         for fname, fcode in features:
             PlanFeature.objects.get_or_create(
                 plan=plan, codename=fcode, defaults={"name": fname}

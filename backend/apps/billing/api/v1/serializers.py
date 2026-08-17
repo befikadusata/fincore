@@ -18,7 +18,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
 
 class SubscribeRequestSerializer(serializers.Serializer):
-    plan = serializers.PrimaryKeyRelatedField(queryset=Plan.objects_unscoped.all())
+    plan = serializers.PrimaryKeyRelatedField(queryset=Plan.objects.all())
     billing_cycle = serializers.ChoiceField(
         choices=['monthly', 'quarterly', 'annually'], default='monthly'
     )
@@ -26,7 +26,7 @@ class SubscribeRequestSerializer(serializers.Serializer):
 
 
 class ChangePlanSerializer(serializers.Serializer):
-    plan = serializers.PrimaryKeyRelatedField(queryset=Plan.objects_unscoped.all())
+    plan = serializers.PrimaryKeyRelatedField(queryset=Plan.objects.all())
 
 
 class InvoiceSerializer(serializers.ModelSerializer):

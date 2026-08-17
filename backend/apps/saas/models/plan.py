@@ -1,10 +1,15 @@
 from django.db import models
-from core.models import TenantScopedModel, BaseModel
+from core.models import BaseModel
 
 
-class Plan(TenantScopedModel):
+class Plan(BaseModel):
+    """
+    The subscription plan catalogue. Plans are platform-owned and global, not
+    tenant-scoped: the platform sells them to tenants, so a tenant selects a
+    plan rather than defining one. Tenant ownership lives on Subscription.
+    """
     name = models.CharField(max_length=255)
-    slug = models.SlugField()
+    slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
     monthly_price = models.IntegerField(default=0)
     annual_price = models.IntegerField(default=0)
@@ -13,7 +18,7 @@ class Plan(TenantScopedModel):
 
     class Meta:
         db_table = 'saas_plan'
-        unique_together = ('tenant', 'slug')
+        ordering = ['-created_at']
 
 
 class PlanFeature(BaseModel):

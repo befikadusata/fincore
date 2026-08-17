@@ -69,7 +69,7 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        return Plan.objects_unscoped.filter(is_active=True).prefetch_related('features')
+        return Plan.objects.filter(is_active=True).prefetch_related('features')
 
 
 class MembershipViewSet(viewsets.ModelViewSet):
