@@ -198,8 +198,11 @@ docker compose -f docker/docker-compose.yml exec django python manage.py migrate
 # Create a superuser (interactive)
 docker compose -f docker/docker-compose.yml exec -it django python manage.py createsuperuser
 
-# (Optional) Seed demo data for a registered user
+# Seed a full demo dataset (creates its own accounts — no prior registration needed)
 docker compose -f docker/docker-compose.yml exec django python seed_demo.py
+
+# Rebuild the demo tenant from a clean slate, discarding any changes made to it
+docker compose -f docker/docker-compose.yml exec django python seed_demo.py --reset
 
 # Run the test suite
 docker compose -f docker/docker-compose.yml exec django pytest
@@ -209,3 +212,25 @@ cd frontend && npm install && npm run dev
 ```
 
 The API is available at `http://localhost:8000/api/v1/` (or whatever `HOST_DJANGO_PORT` is set to) and the frontend at `http://localhost:3000`.
+
+### Demo data
+
+`seed_demo.py` builds a tenant called **Demo Lending Co** with something on every
+screen: five staff accounts across distinct roles, six borrowers, eight loans
+spanning the whole lifecycle (completed, active, in arrears, defaulted, awaiting
+approval, rejected, draft), a balanced ledger with real repayments, two pending
+approvals in My Tasks, notifications, invoices, and an audit trail attributed to
+named people rather than to "System".
+
+All seeded accounts share the password `demo1234`:
+
+| Account | Role |
+| --- | --- |
+| `me@example.com` | Owner (also sits in both approval roles) |
+| `officer@example.com` | Loan Officer |
+| `analyst@example.com` | Credit Analyst |
+| `finance@example.com` | Finance Manager |
+| `auditor@example.com` | Auditor — read-only, `audit:read` |
+
+Re-running without `--reset` is additive and idempotent, so it will not undo a
+loan you advanced by hand. Use `--reset` to get back to the exact starting state.

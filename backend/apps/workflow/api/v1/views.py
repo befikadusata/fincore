@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.workflow.api.v1.serializers import (
+    MyTaskSerializer,
     StepActionSerializer,
     WorkflowDefinitionSerializer,
     WorkflowInstanceSerializer,
@@ -60,7 +61,7 @@ class WorkflowInstanceViewSet(
 
 class MyTasksViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """Pending workflow steps assigned to the current user (by user or by role)."""
-    serializer_class = WorkflowStepSerializer
+    serializer_class = MyTaskSerializer
     permission_classes = [IsTenantMember]
 
     def get_queryset(self):
@@ -79,7 +80,12 @@ class MyTasksViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             status=StepStatus.IN_PROGRESS,
         ).filter(
             db_models.Q(assignee=user) | db_models.Q(assignee_role__in=user_roles)
-        ).select_related('instance', 'instance__definition')
+        ).select_related(
+            'instance', 'instance__definition',
+        ).prefetch_related(
+            # The serializer reads sibling steps to build the comment trail.
+            'instance__steps', 'instance__steps__actor',
+        ).order_by('-started_at')
 
 
 class WorkflowStepViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):

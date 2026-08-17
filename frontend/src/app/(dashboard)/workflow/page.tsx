@@ -21,14 +21,18 @@ interface WorkflowDefinition {
   created_at: string;
 }
 
+// Must satisfy _validate_config in apps/workflow/services/workflow_service.py:
+// every step needs `order`, `name` and a `type` from StepType, and the engine
+// reads its assignment from `assignee_type`/`assignee_value`.
 const EMPTY_CONFIG = JSON.stringify(
   {
     steps: [
       {
+        order: 1,
         name: 'Review',
         type: 'approval',
-        assignee_role: 'loan_officer',
-        actions: ['APPROVE', 'REJECT', 'RETURN'],
+        assignee_type: 'role',
+        assignee_value: 'loan_officer',
       },
     ],
   },

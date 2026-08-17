@@ -14,7 +14,7 @@ export default function MyTasksPage() {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['workflow-tasks'],
     queryFn: async () => {
-      const { data } = await api.get('/api/v1/workflow/instances/my-tasks/');
+      const { data } = await api.get('/api/v1/workflow/my-tasks/');
       return (data?.results ?? data) as WorkflowTask[];
     },
   });

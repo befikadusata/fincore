@@ -1,4 +1,5 @@
 import pytest
+from decimal import Decimal
 from unittest.mock import patch
 
 from apps.saas.models import Membership, Permission, Role, RolePermission, Tenant, User
@@ -701,5 +702,146 @@ class TestStepActionAPI:
             f'/api/v1/workflow/steps/{step.id}/action/',
             {'action': 'skip'},
             format='json',
+        )
+        assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# My Tasks — the approval inbox the dashboard renders
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def loan_for_task(db, tenant, workflow_manager):
+    """A submitted loan, so a task can be checked against a real subject."""
+    from decimal import Decimal
+    from apps.finance.constants import InterestType
+    from apps.finance.models.loan_product import LoanProduct
+    from apps.finance.services.loan_service import LoanService
+
+    borrower = User.objects.create_user(
+        email='borrower@bank.com', password='pw',
+        first_name='Meron', last_name='Haile',
+    )
+    Membership.objects.create(tenant=tenant, user=borrower, status='active')
+    product = LoanProduct.objects_unscoped.create(
+        tenant=tenant, name='Task Product', interest_type=InterestType.FLAT,
+        interest_rate=Decimal('10.00'), min_term_months=1, max_term_months=24,
+        min_amount=Decimal('1000.00'), max_amount=Decimal('500000.00'),
+    )
+    with patch('apps.events.tasks.dispatch_event.apply_async'):
+        loan = LoanService.create_loan(
+            product=product, borrower=borrower, tenant=tenant,
+            principal_amount=Decimal('120000.00'), term_months=18,
+        )
+        LoanService.submit_loan(loan)
+    return loan
+
+
+def _instantiate_for(definition, tenant, loan, role):
+    """Start a workflow whose only step is assigned to `role`."""
+    definition.config = single_step_config(assignee_type='role', assignee_value=role.slug)
+    definition.save(update_fields=['config'])
+    with patch('apps.events.tasks.dispatch_event.apply_async'):
+        return WorkflowService.instantiate(
+            definition=definition, entity_type='loan', entity_id=str(loan.id),
+            context={'principal_amount': float(loan.principal_amount)}, tenant=tenant,
+        )
+
+
+class TestMyTasksAPI:
+    def test_lists_step_assigned_by_role(self, db, tenant, api_client, workflow_manager, definition, loan_for_task):
+        role = Role.objects_unscoped.get(tenant=tenant, slug='wf-manager')
+        _instantiate_for(definition, tenant, loan_for_task, role)
+        _auth(api_client, workflow_manager, tenant)
+
+        resp = api_client.get('/api/v1/workflow/my-tasks/')
+        assert resp.status_code == 200
+        assert len(resp.data['results']) == 1
+
+    def test_task_carries_the_loan_it_decides(self, db, tenant, api_client, workflow_manager, definition, loan_for_task):
+        """The inbox has to say what is being approved, not just that something is."""
+        role = Role.objects_unscoped.get(tenant=tenant, slug='wf-manager')
+        _instantiate_for(definition, tenant, loan_for_task, role)
+        _auth(api_client, workflow_manager, tenant)
+
+        task = api_client.get('/api/v1/workflow/my-tasks/').data['results'][0]
+        assert task['entity_id'] == str(loan_for_task.id)
+        assert task['borrower_name'] == 'Meron Haile'
+        assert task['product_name'] == 'Task Product'
+        assert Decimal(str(task['amount'])) == loan_for_task.principal_amount
+        assert task['loan_term_months'] == 18
+        assert task['loan_status'] == 'submitted'
+        assert task['submitted_at'] is not None
+
+    def test_completed_step_leaves_the_inbox(self, db, tenant, api_client, workflow_manager, definition, loan_for_task):
+        role = Role.objects_unscoped.get(tenant=tenant, slug='wf-manager')
+        _instantiate_for(definition, tenant, loan_for_task, role)
+        _auth(api_client, workflow_manager, tenant)
+
+        task = api_client.get('/api/v1/workflow/my-tasks/').data['results'][0]
+        with patch('apps.events.tasks.dispatch_event.apply_async'):
+            api_client.post(
+                f"/api/v1/workflow/steps/{task['id']}/action/",
+                {'action': 'approve'}, format='json',
+            )
+        assert api_client.get('/api/v1/workflow/my-tasks/').data['results'] == []
+
+
+class TestStepActionPayloadCompatibility:
+    """The dashboard sends uppercase verbs and a singular `comment` field."""
+
+    def test_accepts_uppercase_action_and_singular_comment(
+        self, db, tenant, api_client, workflow_manager, definition,
+    ):
+        with patch('apps.events.tasks.dispatch_event.apply_async'):
+            instance = WorkflowService.instantiate(
+                definition=definition, entity_type='Loan', entity_id='C1', tenant=tenant,
+            )
+        step = _first_step(instance)
+        _auth(api_client, workflow_manager, tenant)
+
+        with patch('apps.events.tasks.dispatch_event.apply_async'):
+            resp = api_client.post(
+                f'/api/v1/workflow/steps/{step.id}/action/',
+                {'action': 'APPROVE', 'comment': 'Verified income documents.'},
+                format='json',
+            )
+        assert resp.status_code == 200
+        assert resp.data['status'] == StepStatus.COMPLETED
+        step.refresh_from_db()
+        assert step.comments == 'Verified income documents.'
+
+    def test_still_accepts_the_original_lowercase_and_comments(
+        self, db, tenant, api_client, workflow_manager, definition,
+    ):
+        with patch('apps.events.tasks.dispatch_event.apply_async'):
+            instance = WorkflowService.instantiate(
+                definition=definition, entity_type='Loan', entity_id='C2', tenant=tenant,
+            )
+        step = _first_step(instance)
+        _auth(api_client, workflow_manager, tenant)
+
+        with patch('apps.events.tasks.dispatch_event.apply_async'):
+            resp = api_client.post(
+                f'/api/v1/workflow/steps/{step.id}/action/',
+                {'action': 'reject', 'comments': 'Denied'},
+                format='json',
+            )
+        assert resp.status_code == 200
+        step.refresh_from_db()
+        assert step.comments == 'Denied'
+
+    def test_unknown_verb_is_still_rejected(
+        self, db, tenant, api_client, workflow_manager, definition,
+    ):
+        with patch('apps.events.tasks.dispatch_event.apply_async'):
+            instance = WorkflowService.instantiate(
+                definition=definition, entity_type='Loan', entity_id='C3', tenant=tenant,
+            )
+        step = _first_step(instance)
+        _auth(api_client, workflow_manager, tenant)
+        resp = api_client.post(
+            f'/api/v1/workflow/steps/{step.id}/action/',
+            {'action': 'ESCALATE'}, format='json',
         )
         assert resp.status_code == 400
