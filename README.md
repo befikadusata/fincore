@@ -164,13 +164,19 @@ Full spec: [`docs/ui_design_system.md`](docs/ui_design_system.md)
 
 ## Test Coverage
 
-| Phase | Scope | Tests |
+**386 backend tests** (pytest) plus **6 end-to-end flows** (Playwright), run on every push via GitHub Actions.
+
+| Area | Scope | Tests |
 |---|---|---|
-| P0 — Foundation | Auth, multi-tenant isolation, RBAC | 15 |
-| P1 — Finance Core | Ledger invariants, loan lifecycle, repayments | 135 |
-| P2 — Workflow & Events | Event bus, workflow engine, audit immutability | 284 |
-| P3 — Integration | Billing, notifications, security hardening | 384 |
-| P4 — Frontend (Billing) | Billing UI, subscription flow | 45 |
+| Finance core | Ledger invariants, loan lifecycle, repayments, wallets | 135 |
+| Workflow engine | Definitions, instances, step execution, approval chains | 69 |
+| Billing | Subscriptions, invoices, Chapa gateway, webhook replay safety | 47 |
+| Multi-tenancy & RBAC | Tenant isolation, roles, permissions, JWT auth | 47 |
+| Audit | Append-only guarantees, `@auditable` coverage | 35 |
+| Notifications | In-app and email channels, per-user preferences | 30 |
+| Events | Event bus, Redis Streams consumer, idempotent handlers | 23 |
+
+End-to-end coverage spans authentication, tenant switching, RBAC enforcement, and the full loan lifecycle.
 
 ---
 
@@ -203,18 +209,3 @@ cd frontend && npm install && npm run dev
 ```
 
 The API is available at `http://localhost:8000/api/v1/` (or whatever `HOST_DJANGO_PORT` is set to) and the frontend at `http://localhost:3000`.
-
----
-
-## Roadmap
-
-| Item | Description |
-|---|---|
-| Kafka migration | Replace Redis Streams for higher-throughput event processing |
-| Multi-currency | Per-tenant currency config with exchange rate support |
-| Stripe adapter | Second `PaymentGateway` implementation for international billing |
-| PostgreSQL RLS | Row-level security as an additional tenant isolation layer |
-| SMS notifications | Channel adapter for Africa's Talking / Twilio |
-| Savings products | Extend the finance module beyond loan origination |
-| Reporting engine | PDF generation and scheduled financial reports |
-| Mobile app | React Native companion app |
