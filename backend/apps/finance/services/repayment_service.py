@@ -18,6 +18,8 @@ from apps.finance.models.wallet import Wallet
 from apps.finance.services.ledger_service import LedgerService
 from apps.finance.services.wallet_service import WalletService
 from apps.finance.state_machines.loan_state_machine import loan_state_machine
+from apps.audit.constants import AuditAction
+from core.decorators.audit import auditable
 from core.exceptions import InsufficientFundsError
 
 logger = logging.getLogger(__name__)
@@ -61,6 +63,7 @@ class RepaymentService:
         return RepaymentSchedule.objects_unscoped.bulk_create(rows)
 
     @staticmethod
+    @auditable('loan', action=AuditAction.REPAID)
     @transaction.atomic
     def process_repayment(loan, amount: Decimal, idempotency_key: str = ''):
         from apps.finance.models.loan import Transaction
@@ -206,6 +209,7 @@ class RepaymentService:
         return count
 
     @staticmethod
+    @auditable('repayment_schedule', action=AuditAction.UPDATE)
     def apply_penalty(installment, penalty_amount: Decimal = None) -> RepaymentSchedule:
         if installment.status != RepaymentStatus.OVERDUE:
             raise ValueError("Can only apply penalty to overdue installments")

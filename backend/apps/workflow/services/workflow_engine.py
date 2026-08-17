@@ -4,13 +4,16 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.workflow.constants import StepAction, StepStatus, WorkflowStatus
+from apps.audit.constants import AuditAction
 from apps.workflow.models import WorkflowInstance, WorkflowStep
+from core.decorators.audit import auditable
 
 logger = logging.getLogger(__name__)
 
 
 class WorkflowEngine:
     @staticmethod
+    @auditable('workflow_step', action=AuditAction.STATUS_CHANGE)
     @transaction.atomic
     def execute_step(step: WorkflowStep, action: str, actor, comments: str = '') -> WorkflowStep:
         if step.status != StepStatus.IN_PROGRESS:

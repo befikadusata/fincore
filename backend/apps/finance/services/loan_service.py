@@ -14,9 +14,11 @@ from apps.finance.constants import (
 from apps.finance.models.account import Account
 from apps.finance.models.loan_product import LoanProduct
 from apps.finance.models.wallet import Wallet
+from apps.audit.constants import AuditAction
 from apps.finance.services.interest import InterestCalculatorFactory
 from apps.finance.services.wallet_service import WalletService
 from apps.finance.state_machines.loan_state_machine import loan_state_machine
+from core.decorators.audit import auditable
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,7 @@ def _emit_loan_event(event_type: str, loan) -> None:
 
 class LoanService:
     @staticmethod
+    @auditable('loan', action=AuditAction.CREATE, target='result')
     @transaction.atomic
     def create_loan(
         product: LoanProduct,
@@ -93,6 +96,7 @@ class LoanService:
         )
 
     @staticmethod
+    @auditable('loan', action=AuditAction.SUBMITTED)
     def submit_loan(loan):
         loan = loan_state_machine.transition(loan, 'status', LoanStatus.SUBMITTED)
         loan.submitted_at = timezone.now()
@@ -101,6 +105,7 @@ class LoanService:
         return loan
 
     @staticmethod
+    @auditable('loan', action=AuditAction.APPROVED)
     def approve_loan(loan, approver=None):
         if loan.status == LoanStatus.SUBMITTED:
             loan_state_machine.transition(loan, 'status', LoanStatus.UNDER_REVIEW)
@@ -112,12 +117,14 @@ class LoanService:
         return loan
 
     @staticmethod
+    @auditable('loan', action=AuditAction.REJECTED)
     def reject_loan(loan):
         loan = loan_state_machine.transition(loan, 'status', LoanStatus.REJECTED)
         _emit_loan_event('loan.rejected', loan)
         return loan
 
     @staticmethod
+    @auditable('loan', action=AuditAction.DISBURSED)
     @transaction.atomic
     def disburse_loan(loan):
         from apps.finance.models.loan import Transaction
@@ -163,6 +170,7 @@ class LoanService:
         return loan
 
     @staticmethod
+    @auditable('loan', action=AuditAction.DEFAULTED)
     def default_loan(loan):
         loan = loan_state_machine.transition(loan, 'status', LoanStatus.DEFAULTED)
         _emit_loan_event('loan.defaulted', loan)

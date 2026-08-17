@@ -25,10 +25,16 @@ interface AuditResponse {
   results: AuditLog[];
 }
 
+// Must match AuditAction in apps/audit/constants.py — the filter sends these
+// values through verbatim, so a label that is not a real choice matches nothing.
 const COMMON_ACTIONS = [
-  'created', 'updated', 'deleted',
+  'create', 'update', 'delete',
   'submitted', 'approved', 'rejected',
-  'disbursed', 'repaid', 'activated', 'deactivated',
+  'disbursed', 'repaid', 'defaulted',
+  'credit', 'debit',
+  'role_assigned', 'role_removed',
+  'subscribed', 'cancelled',
+  'status_change', 'login', 'logout',
 ];
 
 export default function AuditPage() {

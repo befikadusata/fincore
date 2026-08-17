@@ -377,7 +377,11 @@ class TestAuditLogAPI:
         _auth(api_client, audit_reader, tenant)
         resp = api_client.get('/api/v1/audit/logs/')
         assert resp.status_code == 200
-        assert len(resp.data['results']) == 3
+        # Asserted by entity rather than by count: service calls are audited now,
+        # so fixtures legitimately add entries of their own.
+        returned = {item['entity_id'] for item in resp.data['results']}
+        assert {'loan-0', 'loan-1', 'loan-2'} <= returned
+        assert 'x' not in returned
 
     def test_list_filter_by_action(self, db, tenant, api_client, audit_reader):
         self._seed(tenant)
@@ -466,3 +470,190 @@ class TestEntityHistoryAPI:
         assert resp.status_code == 200
         assert len(resp.data) == 1
         assert resp.data[0]['action'] == AuditAction.CREATE
+
+
+# ---------------------------------------------------------------------------
+# Service wiring — @auditable applied to real services
+# ---------------------------------------------------------------------------
+
+class TestServiceAuditWiring:
+    """The decorator was previously applied to no production service, so every
+    real action went unrecorded. These tests pin the wiring itself."""
+
+    @pytest.fixture
+    def product(self, tenant):
+        from decimal import Decimal
+        from apps.finance.constants import InterestType
+        from apps.finance.models import LoanProduct
+
+        return LoanProduct.objects_unscoped.create(
+            tenant=tenant,
+            name='Flat Loan',
+            interest_type=InterestType.FLAT,
+            interest_rate=Decimal('12.00'),
+            min_term_months=3,
+            max_term_months=24,
+            min_amount=Decimal('1000.00'),
+            max_amount=Decimal('50000.00'),
+        )
+
+    def _make_loan(self, tenant, product, borrower):
+        from decimal import Decimal
+        from apps.finance.services.loan_service import LoanService
+
+        return LoanService.create_loan(
+            product=product, borrower=borrower, tenant=tenant,
+            principal_amount=Decimal('10000.00'), term_months=6,
+        )
+
+    def test_create_loan_writes_audit_entry(self, db, tenant, product):
+        borrower = User.objects.create_user(email='b1@bank.com', password='pw')
+        loan = self._make_loan(tenant, product, borrower)
+
+        entry = AuditLog.objects.get(entity_type='loan', entity_id=str(loan.id))
+        assert entry.action == AuditAction.CREATE
+        # The created loan, not the LoanProduct passed in as an argument.
+        assert entry.entity_id == str(loan.id)
+
+    def test_audit_entry_is_tenant_scoped(self, db, tenant, product):
+        """A NULL tenant makes the entry invisible to AuditLogViewSet."""
+        borrower = User.objects.create_user(email='b2@bank.com', password='pw')
+        loan = self._make_loan(tenant, product, borrower)
+
+        entry = AuditLog.objects.get(entity_type='loan', entity_id=str(loan.id))
+        assert entry.tenant == tenant
+
+    def test_loan_lifecycle_records_distinct_actions(self, db, tenant, product):
+        from apps.finance.services.loan_service import LoanService
+
+        borrower = User.objects.create_user(email='b3@bank.com', password='pw')
+        loan = self._make_loan(tenant, product, borrower)
+        LoanService.submit_loan(loan)
+        LoanService.approve_loan(loan, approver=borrower)
+
+        actions = list(
+            AuditLog.objects.filter(entity_type='loan', entity_id=str(loan.id))
+            .order_by('created_at')
+            .values_list('action', flat=True)
+        )
+        assert actions == [
+            AuditAction.CREATE,
+            AuditAction.SUBMITTED,
+            AuditAction.APPROVED,
+        ]
+
+    def test_status_change_is_captured_in_changes(self, db, tenant, product):
+        from apps.finance.services.loan_service import LoanService
+
+        borrower = User.objects.create_user(email='b4@bank.com', password='pw')
+        loan = self._make_loan(tenant, product, borrower)
+        LoanService.submit_loan(loan)
+
+        entry = AuditLog.objects.get(
+            entity_type='loan', entity_id=str(loan.id), action=AuditAction.SUBMITTED
+        )
+        assert entry.changes['status']['new'] == 'submitted'
+
+    def test_actor_type_is_system_without_request_context(self, db, tenant, product):
+        """No request context means no user — logging it as ActorType.USER
+        with a null actor_id would misattribute scheduled work."""
+        clear_audit_context()
+        borrower = User.objects.create_user(email='b5@bank.com', password='pw')
+        loan = self._make_loan(tenant, product, borrower)
+
+        entry = AuditLog.objects.get(entity_type='loan', entity_id=str(loan.id))
+        assert entry.actor_type == ActorType.SYSTEM
+
+    def test_actor_id_recorded_from_request_context(self, db, tenant, product):
+        borrower = User.objects.create_user(email='b6@bank.com', password='pw')
+        set_audit_context({'user_id': borrower.id, 'ip_address': '10.0.0.1', 'user_agent': 'pytest'})
+        try:
+            loan = self._make_loan(tenant, product, borrower)
+        finally:
+            clear_audit_context()
+
+        entry = AuditLog.objects.get(entity_type='loan', entity_id=str(loan.id))
+        assert entry.actor_id == borrower.id
+        assert entry.actor_type == ActorType.USER
+        assert entry.ip_address == '10.0.0.1'
+
+    def test_encrypted_fields_are_redacted(self, db, tenant):
+        """model_to_dict decrypts EncryptedCharField, so capturing a model with
+        one must not copy plaintext PII into the unencrypted changes column."""
+        from core.decorators.audit import auditable, REDACTED
+
+        user = User.objects.create_user(
+            email='pii@bank.com', password='pw', first_name='Sensitive'
+        )
+
+        @auditable('user', action=AuditAction.UPDATE)
+        def rename(u):
+            u.last_name = 'Changed'
+            u.save(update_fields=['last_name'])
+            return u
+
+        rename(user)
+
+        entry = AuditLog.objects.filter(entity_type='user').latest('created_at')
+        serialized = str(entry.changes)
+        assert 'Sensitive' not in serialized
+        assert 'Changed' not in serialized
+        assert entry.changes['last_name']['new'] == REDACTED
+
+
+# ---------------------------------------------------------------------------
+# API contract — filters and fields the frontend actually uses
+# ---------------------------------------------------------------------------
+
+class TestAuditAPIContract:
+    def test_actor_name_is_returned(self, db, tenant, api_client, audit_reader):
+        AuditLog.objects.create(
+            tenant=tenant, actor_id=audit_reader.id,
+            action=AuditAction.CREATE, entity_type='Loan', entity_id='n-1',
+        )
+        _auth(api_client, audit_reader, tenant)
+        resp = api_client.get('/api/v1/audit/logs/', {'entity_id': 'n-1'})
+        assert resp.status_code == 200
+        assert resp.data['results'][0]['actor_name'] == 'auditor@bank.com'
+
+    def test_non_user_actor_is_labelled(self, db, tenant, api_client, audit_reader):
+        AuditLog.objects.create(
+            tenant=tenant, actor_id=None, actor_type=ActorType.CELERY,
+            action=AuditAction.UPDATE, entity_type='Loan', entity_id='n-2',
+        )
+        _auth(api_client, audit_reader, tenant)
+        resp = api_client.get('/api/v1/audit/logs/', {'entity_id': 'n-2'})
+        assert resp.data['results'][0]['actor_name'] == 'Celery'
+
+    def test_actor_search_filter(self, db, tenant, api_client, audit_reader):
+        other = User.objects.create_user(email='someone@else.com', password='pw')
+        AuditLog.objects.create(
+            tenant=tenant, actor_id=audit_reader.id,
+            action=AuditAction.CREATE, entity_type='Loan', entity_id='mine',
+        )
+        AuditLog.objects.create(
+            tenant=tenant, actor_id=other.id,
+            action=AuditAction.CREATE, entity_type='Loan', entity_id='theirs',
+        )
+        _auth(api_client, audit_reader, tenant)
+        resp = api_client.get('/api/v1/audit/logs/', {'actor': 'auditor'})
+        assert resp.status_code == 200
+        returned = {r['entity_id'] for r in resp.data['results']}
+        assert 'mine' in returned
+        assert 'theirs' not in returned
+
+    def test_start_end_date_aliases_are_honoured(self, db, tenant, api_client, audit_reader):
+        """The UI sends start_date/end_date; only date_from/date_to were read,
+        so every date filter was silently ignored."""
+        AuditLog.objects.create(
+            tenant=tenant, action=AuditAction.CREATE, entity_type='Loan', entity_id='dated',
+        )
+        _auth(api_client, audit_reader, tenant)
+
+        resp = api_client.get('/api/v1/audit/logs/', {'start_date': '2000-01-01'})
+        assert resp.status_code == 200
+        assert any(r['entity_id'] == 'dated' for r in resp.data['results'])
+
+        resp = api_client.get('/api/v1/audit/logs/', {'end_date': '2000-01-01'})
+        assert resp.status_code == 200
+        assert not any(r['entity_id'] == 'dated' for r in resp.data['results'])

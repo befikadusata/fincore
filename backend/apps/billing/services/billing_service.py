@@ -9,7 +9,9 @@ from django.utils import timezone
 from apps.billing.constants import (
     BillingCycle, GatewayProvider, InvoiceStatus, PaymentStatus, SubscriptionStatus,
 )
+from apps.audit.constants import AuditAction
 from apps.billing.models import Invoice, PaymentRecord, Subscription
+from core.decorators.audit import auditable
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,7 @@ def _generate_invoice_number(tenant) -> str:
 
 class BillingService:
     @staticmethod
+    @auditable('subscription', action=AuditAction.SUBSCRIBED, target='result')
     @transaction.atomic
     def subscribe(
         tenant,
@@ -66,6 +69,7 @@ class BillingService:
         return subscription
 
     @staticmethod
+    @auditable('subscription', action=AuditAction.UPDATE)
     @transaction.atomic
     def change_plan(subscription: Subscription, new_plan) -> Subscription:
         subscription.plan = new_plan
@@ -73,6 +77,7 @@ class BillingService:
         return subscription
 
     @staticmethod
+    @auditable('subscription', action=AuditAction.CANCELLED)
     @transaction.atomic
     def cancel_subscription(subscription: Subscription) -> Subscription:
         subscription.status = SubscriptionStatus.CANCELLED

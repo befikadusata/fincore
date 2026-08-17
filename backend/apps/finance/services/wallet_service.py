@@ -15,12 +15,15 @@ from apps.finance.constants import (
 from apps.finance.models.account import Account
 from apps.finance.models.ledger_entry import LedgerEntry
 from apps.finance.models.wallet import Wallet
+from apps.audit.constants import AuditAction
 from apps.finance.services.ledger_service import LedgerService
+from core.decorators.audit import auditable
 from core.exceptions import InsufficientFundsError
 
 
 class WalletService:
     @staticmethod
+    @auditable('wallet', action=AuditAction.CREATE, target='result')
     @transaction.atomic
     def create_wallet(
         owner,
@@ -47,6 +50,7 @@ class WalletService:
         return wallet
 
     @staticmethod
+    @auditable('wallet', action=AuditAction.CREDIT)
     @transaction.atomic
     def credit(
         wallet: Wallet,
@@ -80,6 +84,7 @@ class WalletService:
         return wallet
 
     @staticmethod
+    @auditable('wallet', action=AuditAction.DEBIT)
     @transaction.atomic
     def debit(
         wallet: Wallet,
@@ -135,6 +140,7 @@ class WalletService:
         return total_credits - total_debits
 
     @staticmethod
+    @auditable('wallet', action=AuditAction.STATUS_CHANGE)
     def freeze(wallet: Wallet) -> Wallet:
         if wallet.status == WalletStatus.CLOSED:
             raise ValueError("Cannot freeze a closed wallet")
@@ -143,6 +149,7 @@ class WalletService:
         return wallet
 
     @staticmethod
+    @auditable('wallet', action=AuditAction.STATUS_CHANGE)
     def unfreeze(wallet: Wallet) -> Wallet:
         if wallet.status != WalletStatus.FROZEN:
             raise ValueError("Only frozen wallets can be unfrozen")

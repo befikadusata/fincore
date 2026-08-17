@@ -26,9 +26,22 @@ class AuditLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             qs = qs.filter(entity_id=entity_id)
         if actor_id := params.get('actor_id'):
             qs = qs.filter(actor_id=actor_id)
-        if date_from := params.get('date_from'):
+
+        # Free-text actor search from the UI. actor_id is a bare UUID column, so
+        # resolve matching users to ids first.
+        if actor_search := params.get('actor'):
+            from apps.saas.models import User
+
+            matches = User.objects.filter(email__icontains=actor_search).values_list(
+                'id', flat=True
+            )
+            qs = qs.filter(actor_id__in=list(matches))
+
+        # `start_date`/`end_date` are what the UI sends; `date_from`/`date_to`
+        # are the original names, kept so existing API clients keep working.
+        if date_from := (params.get('date_from') or params.get('start_date')):
             qs = qs.filter(created_at__date__gte=date_from)
-        if date_to := params.get('date_to'):
+        if date_to := (params.get('date_to') or params.get('end_date')):
             qs = qs.filter(created_at__date__lte=date_to)
 
         return qs
