@@ -2,11 +2,14 @@ import { Button } from '@/components/ui/Button';
 import { formatLoanId, formatElapsed } from '@/lib/format';
 import { AmountDisplay } from './AmountDisplay';
 
+const m = (v: string | number | null | undefined) =>
+  Math.round(parseFloat(String(v ?? 0)) * 100);
+
 export interface WorkflowStep {
   id: string;
   entity_id: string;
   borrower_name: string;
-  amount: number;
+  amount: string | number;
   loan_term_months?: number;
   step_type: string;
   submitted_at: string;
@@ -45,7 +48,7 @@ export function WorkflowStepCard({ step, onReview }: WorkflowStepCardProps) {
           <span className="text-sm text-primary">{step.borrower_name}</span>
         </div>
         <div className="flex items-center gap-2 mt-1 text-sm text-secondary flex-wrap">
-          <AmountDisplay amount={step.amount} />
+          <AmountDisplay amount={m(step.amount)} />
           {step.loan_term_months && (
             <>
               <span>·</span>
