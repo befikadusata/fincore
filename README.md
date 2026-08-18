@@ -29,11 +29,23 @@ FinCore gives organizations a full lending operation out of the box:
 
 ---
 
-## Screenshots
+## Demo
 
-![Loan management with detail drawer](docs/screenshots/loans.png)
-![Role & permission management](docs/screenshots/roles.png)
-![Subscription billing](docs/screenshots/billing.png)
+**Loan lifecycle** — the portfolio view, and a loan opened to its stage timeline, schedule, and running balance.
+
+![Loan portfolio and loan detail drawer](docs/media/loan-lifecycle.gif)
+
+**Approval workflow** — a submitted loan lands in the assigned approver's queue; approving it advances the instance to the next step.
+
+![Approval inbox, reviewing and approving a loan](docs/media/approval-workflow.gif)
+
+**Double-entry ledger** — wallet statements trace back to journal entries, and the trial balance closes with debits equal to credits.
+
+![Wallet statement and a balanced trial balance](docs/media/double-entry-ledger.gif)
+
+**Audit trail** — an append-only record of every mutation, with actor, entity, changed fields, and timestamp.
+
+![Audit log filtered by action and entity](docs/media/audit-trail.gif)
 
 ---
 
