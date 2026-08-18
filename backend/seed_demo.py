@@ -30,6 +30,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.audit.models import AuditLog
+from apps.events.constants import EventStatus
+from apps.events.models import DomainEvent
 from apps.billing.constants import (
     BillingCycle, GatewayProvider, InvoiceStatus, PaymentStatus, SubscriptionStatus,
 )
@@ -73,6 +75,68 @@ args = parser.parse_args()
 EMAIL = args.email
 DEMO_PASSWORD = "demo1234"  # Development fixture only — never used outside seeding.
 TENANT_SLUG = "demo-lending-co"
+
+
+# ── Async dispatch ────────────────────────────────────────────────────────────
+# This script performs every state change itself and instantiates the workflows
+# it wants, so the Celery fan-out behind each domain event has nothing left to
+# contribute here — and three ways to get it wrong:
+#
+#   * it races `--reset`, which deletes the very loans the worker is mid-way
+#     through handling, and the two deadlock on finance_loan;
+#   * with the worker down, on_commit still enqueues, so the run banks a backlog
+#     that replays against deleted rows the moment a worker comes back;
+#   * handle_loan_submitted builds a workflow instance for every loan.submitted
+#     it sees, duplicating the instances created explicitly further down.
+#
+# Suppressing dispatch makes a seed run deterministic whether or not a worker is
+# up. The events themselves are still written, so the events screen has history.
+from apps.events.tasks import dispatch_event
+
+dispatch_event.apply_async = lambda *a, **kw: None
+
+
+def settle_pending_events(tenant, note):
+    """Mark the tenant's un-dispatched events processed.
+
+    Nothing will ever consume them: dispatch is suppressed above, so they would
+    sit PENDING indefinitely until something re-dispatched them — and a
+    loan.submitted replayed hours later builds a *second* workflow instance for
+    a loan the demo has long since moved past, which is where the stray tasks
+    with no borrower name in My Tasks come from. Settling them also disarms any
+    message still queued from an earlier run, because dispatch_event returns
+    early on an event that is already PROCESSED.
+    """
+    settled = DomainEvent.objects_unscoped.filter(
+        tenant=tenant, status__in=(EventStatus.PENDING, EventStatus.PROCESSING),
+    ).update(status=EventStatus.PROCESSED, processed_at=timezone.now())
+    if settled:
+        print(f"  Settled {settled} un-dispatched event(s) {note}")
+    return settled
+
+
+def warn_if_worker_live():
+    """Say so, loudly, if a Celery worker is up when --reset starts.
+
+    The delete below takes out most of the tenant's tables at once. A worker
+    part-way through a handler holds row locks on finance_loan and the two
+    deadlock — Postgres kills one of them and the reset dies half-done. Nothing
+    this script can do prevents that from outside the worker, so the honest
+    move is to name the problem and the fix rather than fail cryptically.
+    """
+    try:
+        from config.celery import app as celery_app
+        replies = celery_app.control.ping(timeout=1.0)
+    except Exception:
+        return
+    if not replies:
+        return
+    names = ", ".join(sorted(k for reply in replies for k in reply))
+    print(f"  ! A Celery worker is running ({names}).")
+    print("  ! It can hold locks on the rows this reset deletes, and the two")
+    print("  ! can deadlock on finance_loan. If that happens, stop the workers:")
+    print("  !   docker compose -f docker/docker-compose.yml stop celery_beat celery_worker")
+    print("  ! then re-run this script and start them again afterwards.")
 
 
 def heading(text):
@@ -178,9 +242,14 @@ set_current_tenant(tenant)
 # ── Reset ─────────────────────────────────────────────────────────────────────
 if args.reset:
     heading("Resetting demo tenant data...")
+    warn_if_worker_live()
     with transaction.atomic():
         # Ordered by dependency: ledger and transactions reference accounts and
         # loans via PROTECT, so they have to go before the rows they point at.
+        # Domain events go too. They are the seed's own audit of what it did,
+        # but a surviving PENDING event is a live instruction to rebuild a
+        # workflow for a loan this block is about to delete.
+        DomainEvent.objects_unscoped.filter(tenant=tenant).delete()
         WorkflowStep.objects_unscoped.filter(tenant=tenant).delete()
         WorkflowInstance.objects_unscoped.filter(tenant=tenant).delete()
         WorkflowDefinition.objects_unscoped.filter(tenant=tenant).delete()
@@ -199,7 +268,7 @@ if args.reset:
         # AuditLog blocks delete() on the instance to keep the trail append-only;
         # a queryset delete bypasses that, which is the point of an explicit reset.
         AuditLog.objects.filter(tenant=tenant).delete()
-    print("  Cleared loans, ledger, wallets, workflow, notifications, invoices, audit")
+    print("  Cleared loans, ledger, wallets, workflow, events, notifications, invoices, audit")
 
 
 # ── Team ──────────────────────────────────────────────────────────────────────
@@ -551,8 +620,11 @@ else:
     print(f"  Exists : {definition.name} v{definition.version}")
 
 for loan in (pending_small, pending_large):
+    # entity_type is matched case-insensitively on purpose: this script writes
+    # "loan", handle_loan_submitted writes "Loan", and an exact match here would
+    # miss one the event handler had already created and instantiate a second.
     already = WorkflowInstance.objects_unscoped.filter(
-        tenant=tenant, entity_type="loan", entity_id=str(loan.id),
+        tenant=tenant, entity_type__iexact="loan", entity_id=str(loan.id),
     ).exists()
     if already:
         continue
@@ -652,6 +724,14 @@ unread = Notification.objects_unscoped.filter(
     tenant=tenant, recipient=owner,
 ).exclude(status="read").count()
 print(f"  {unread} unread for {EMAIL}")
+
+
+# ── Settle ────────────────────────────────────────────────────────────────────
+# Everything above emitted events that nothing dispatched. Leaving them PENDING
+# would hand the next worker that runs recover_pending_events a licence to redo
+# the whole seed's fan-out against state it no longer matches.
+heading("Settling domain events...")
+settle_pending_events(tenant, "raised by this run")
 
 
 # ── Summary ───────────────────────────────────────────────────────────────────
