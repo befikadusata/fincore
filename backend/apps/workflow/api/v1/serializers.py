@@ -73,10 +73,21 @@ class MyTaskListSerializer(serializers.ListSerializer):
         loan_ids = [
             row.instance.entity_id
             for row in rows
-            if row.instance.entity_type == 'loan' and row.instance.entity_id
+            if _is_loan(row.instance) and row.instance.entity_id
         ]
         self.child.loans = _loans_by_id(loan_ids)
         return super().to_representation(rows)
+
+
+def _is_loan(instance):
+    """Whether a workflow instance is deciding a loan.
+
+    The two writers disagree on case: handle_loan_submitted follows the domain
+    event and stores 'Loan', while the seed script and the workflow tests store
+    'loan'. An exact match here silently failed to resolve half the instances,
+    and the inbox rendered those tasks with no borrower and no amount.
+    """
+    return (instance.entity_type or '').lower() == 'loan'
 
 
 def _loans_by_id(loan_ids):
@@ -118,7 +129,7 @@ class MyTaskSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def _loan(self, obj):
-        if obj.instance.entity_type != 'loan':
+        if not _is_loan(obj.instance):
             return None
         cached = getattr(self, 'loans', None)
         if cached is not None:

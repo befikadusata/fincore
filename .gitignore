@@ -31,7 +31,8 @@ venv.bak
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media
+# Anchored: bare `media` also matched docs/media, which holds README assets.
+/media/
 staticfiles/
 celerybeat-schedule
 celerybeat-schedule.db

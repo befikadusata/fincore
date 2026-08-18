@@ -13,17 +13,20 @@ import { formatLoanId, formatDate, formatElapsed } from '@/lib/format';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/lib/api';
 
+const m = (v: string | number | null | undefined) =>
+  Math.round(parseFloat(String(v ?? 0)) * 100);
+
 export interface WorkflowTask {
   id: string;
   instance_id: string;
   entity_id: string;
   entity_type: string;
   borrower_name: string;
-  amount: number;
+  amount: string | number;
   loan_term_months?: number;
   loan_status?: string;
   product_name?: string;
-  outstanding_balance?: number;
+  outstanding_balance?: string | number | null;
   step_type: string;
   submitted_at: string;
   is_read?: boolean;
@@ -151,9 +154,9 @@ export function StepDetailDrawer({ open, onClose, task, onActioned }: StepDetail
 
           {/* Key amounts */}
           <div className="grid grid-cols-2 gap-3">
-            <AmountSummary label="Principal" value={<AmountDisplay amount={task.amount} />} />
-            {task.outstanding_balance !== undefined && (
-              <AmountSummary label="Outstanding" value={<AmountDisplay amount={task.outstanding_balance} />} />
+            <AmountSummary label="Principal" value={<AmountDisplay amount={m(task.amount)} />} />
+            {task.outstanding_balance != null && (
+              <AmountSummary label="Outstanding" value={<AmountDisplay amount={m(task.outstanding_balance)} />} />
             )}
             {task.loan_term_months !== undefined && (
               <AmountSummary
@@ -173,7 +176,7 @@ export function StepDetailDrawer({ open, onClose, task, onActioned }: StepDetail
                     <InfoRow label="Loan ID" value={<span className="font-mono text-sm">{formatLoanId(task.entity_id)}</span>} />
                     <InfoRow label="Borrower" value={task.borrower_name} />
                     {task.product_name && <InfoRow label="Product" value={task.product_name} />}
-                    <InfoRow label="Principal" value={<AmountDisplay amount={task.amount} />} />
+                    <InfoRow label="Principal" value={<AmountDisplay amount={m(task.amount)} />} />
                     {task.loan_term_months && (
                       <InfoRow label="Term" value={`${task.loan_term_months} months`} />
                     )}

@@ -8,7 +8,8 @@ def handle_loan_submitted(event):
     Instantiate the tenant's active loan-approval workflow whenever a loan is submitted.
     No-op when no active WorkflowDefinition with trigger_event='loan.submitted' exists.
     """
-    from apps.workflow.models import WorkflowDefinition
+    from apps.workflow.constants import WorkflowStatus
+    from apps.workflow.models import WorkflowDefinition, WorkflowInstance
     from apps.workflow.services.workflow_service import WorkflowService
 
     definition = (
@@ -20,13 +21,46 @@ def handle_loan_submitted(event):
     if definition is None:
         return
 
+    # One live workflow per loan. Dispatch is at-least-once — a retry, or a
+    # message replayed after the worker was down, delivers the same event again
+    # — and without this each delivery built another instance, leaving the
+    # approver with duplicate tasks for a decision they had already made.
+    # Matched case-insensitively because the seed script writes 'loan'.
+    already_running = WorkflowInstance.objects_unscoped.filter(
+        tenant_id=event.tenant_id,
+        entity_type__iexact='Loan',
+        entity_id=str(event.entity_id),
+    ).exclude(
+        status__in=(WorkflowStatus.COMPLETED, WorkflowStatus.CANCELLED),
+    ).exists()
+    if already_running:
+        logger.info('Workflow already running for loan %s; skipping', event.entity_id)
+        return
+
     WorkflowService.instantiate(
         definition=definition,
         entity_type='Loan',
         entity_id=event.entity_id,
-        context={'loan_id': event.entity_id, **event.payload},
+        context={
+            'loan_id': event.entity_id,
+            **event.payload,
+            # The payload carries principal_amount as a string, because that is
+            # how a Decimal survives JSON. Step conditions compare it against a
+            # number, and `'120000.00' >= 50000` raises TypeError, which
+            # evaluate_conditions swallows as "condition not met" — so every
+            # amount-gated step was being skipped instead of applied.
+            **_numeric(event.payload, 'principal_amount'),
+        },
         tenant=event.tenant,
     )
+
+
+def _numeric(payload, field):
+    """{field: float} when the payload holds a numeric string, else {}."""
+    try:
+        return {field: float(payload[field])}
+    except (KeyError, TypeError, ValueError):
+        return {}
 
 
 def handle_workflow_completed(event):
