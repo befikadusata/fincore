@@ -11,7 +11,9 @@
 
 **Multi-tenant fintech SaaS platform** for loan lifecycle management, double-entry bookkeeping, and configurable workflow automation.
 
-Built as a Django modular monolith with a Next.js frontend, FinCore demonstrates production-grade fintech architecture: tenant isolation, event-driven processing, compliance-grade audit trails, and an integrated billing system.
+Built as a Django modular monolith with a Next.js frontend. The problems worth solving here are not the CRUD: keeping tenant data isolated when any unscoped query could leak it, keeping books that balance by construction rather than by reconciliation, and letting a tenant rewire an approval chain without a deploy.
+
+Where the design has known limits, they are named in [Future Work](#future-work) rather than left for a reader to find.
 
 ---
 
@@ -73,7 +75,7 @@ FinCore gives organizations a full lending operation out of the box:
 | Server state | TanStack Query |
 | Client state | Zustand |
 | Forms | React Hook Form + Zod |
-| UI components | Custom design system (10 base + 6 domain components) |
+| UI components | Custom design system (11 base + 6 domain components) |
 
 ---
 
@@ -126,7 +128,7 @@ fincore/
 │   └── src/
 │       ├── app/              # Next.js App Router pages (auth + dashboard routes)
 │       ├── components/
-│       │   ├── ui/           # 10 base components (Button, Table, Modal, Drawer, …)
+│       │   ├── ui/           # 11 base components (Button, Table, Modal, Drawer, …)
 │       │   └── domain/       # 6 domain components (AmountDisplay, LoanTimeline, …)
 │       └── lib/              # API client, format utils, status utils, Zod schemas
 ├── docs/                     # Architecture document, implementation plan, design system
@@ -150,15 +152,41 @@ Each transition is event-driven: submitting a loan fires `loan.submitted`, which
 
 All endpoints sit under `/api/v1/`. The API is fully versioned and documented via OpenAPI 3.0 (drf-spectacular).
 
-| Module | Key Endpoints |
-|---|---|
-| Auth | `POST /auth/login/`, `POST /auth/refresh/`, `POST /auth/register/`, `GET /auth/me/` |
-| SaaS | `/tenants/`, `/members/`, `/roles/`, `/permissions/` |
-| Finance | `/loan-products/`, `/loans/`, `/repayments/`, `/wallets/`, `/ledger/trial-balance/` |
-| Workflow | `/workflow-definitions/`, `/workflow-instances/`, `/my-tasks/`, `/workflow-steps/{id}/action/` |
-| Audit | `/audit-logs/`, `/audit-logs/entity/{type}/{id}/` |
-| Notifications | `/notifications/`, `/notification-preferences/` |
-| Billing | `/subscription/`, `/invoices/`, `/billing/invoices/{id}/checkout/`, `/webhooks/chapa/` |
+Each module mounts its own namespace, so the URL names the bounded context that owns the resource.
+
+| Module | Mount | Key Endpoints |
+|---|---|---|
+| Auth | `/api/v1/auth/` | `POST token/`, `POST token/refresh/`, `POST register/`, `GET PATCH me/`, `POST logout/` |
+| SaaS | `/api/v1/` | `tenants/`, `members/`, `roles/`, `permissions/`, `plans/` |
+| Finance | `/api/v1/finance/` | `loan-products/`, `loans/`, `wallets/`, `ledger/trial-balance/` |
+| Workflow | `/api/v1/workflow/` | `definitions/`, `instances/`, `steps/`, `my-tasks/` |
+| Audit | `/api/v1/audit/` | `logs/`, `logs/entity-history/?entity_type=&entity_id=` |
+| Notifications | `/api/v1/notifications/` | collection at the mount root, `preferences/` |
+| Billing | `/api/v1/billing/` | `subscriptions/`, `invoices/` |
+| Webhooks | `/api/v1/webhooks/` | `chapa/` |
+
+State transitions are modelled as actions on the resource that owns them, rather than as
+free-floating verbs. The loan is the aggregate root, so the lifecycle lives on it:
+
+```
+POST finance/loans/{id}/submit/      fires loan.submitted, starts the configured workflow
+POST finance/loans/{id}/approve/     fires loan.approved, which triggers disbursement
+POST finance/loans/{id}/disburse/    writes the balanced ledger entries
+POST finance/loans/{id}/repay/       oldest installments first, split penalty/interest/principal
+GET  finance/loans/{id}/schedule/    amortisation schedule
+GET  finance/wallets/{id}/statement/ running balance with per-entry provenance
+```
+
+The same shape applies elsewhere — approvals act on the step, not on a global queue:
+
+```
+POST workflow/steps/{id}/action/            approve, reject or return the step
+POST tenants/switch/                        re-scopes the session to another tenant
+POST roles/{id}/assign_permissions/         grants granular permissions (loan:approve, …)
+POST members/invite/
+POST billing/invoices/{id}/checkout/        opens a Chapa payment session
+POST billing/subscriptions/{id}/change-plan/
+```
 
 ---
 
@@ -176,17 +204,18 @@ Full spec: [`docs/ui_design_system.md`](docs/ui_design_system.md)
 
 ## Test Coverage
 
-**386 backend tests** (pytest) plus **6 end-to-end flows** (Playwright), run on every push via GitHub Actions.
+**403 backend tests** (pytest) plus **6 end-to-end flows** (Playwright), run on every push via GitHub Actions.
 
 | Area | Scope | Tests |
 |---|---|---|
 | Finance core | Ledger invariants, loan lifecycle, repayments, wallets | 135 |
-| Workflow engine | Definitions, instances, step execution, approval chains | 69 |
+| Workflow engine | Definitions, instances, step execution, approval chains | 75 |
 | Billing | Subscriptions, invoices, Chapa gateway, webhook replay safety | 47 |
-| Multi-tenancy & RBAC | Tenant isolation, roles, permissions, JWT auth | 47 |
-| Audit | Append-only guarantees, `@auditable` coverage | 35 |
+| Audit | Append-only guarantees, `@auditable` coverage, service wiring | 46 |
 | Notifications | In-app and email channels, per-user preferences | 30 |
+| Security hardening | Password complexity, security headers, field encryption, input validation | 25 |
 | Events | Event bus, Redis Streams consumer, idempotent handlers | 23 |
+| Multi-tenancy & RBAC | Tenant isolation, roles, permissions, JWT auth | 22 |
 
 End-to-end coverage spans authentication, tenant switching, RBAC enforcement, and the full loan lifecycle.
 
@@ -246,3 +275,24 @@ All seeded accounts share the password `demo1234`:
 
 Re-running without `--reset` is additive and idempotent, so it will not undo a
 loan you advanced by hand. Use `--reset` to get back to the exact starting state.
+
+---
+
+## Future Work
+
+Known limits of the current build. Most are deliberate scope cuts; two are loose ends found
+while hardening the demo path, recorded here rather than left for a reader to discover.
+
+**Tenant isolation is enforced in the application layer.** `TenantManager` scopes every query by default, but `objects_unscoped` exists and is used in roughly seventy places where code legitimately runs outside a request (event handlers, Celery tasks, the seed script). One forgotten scope is a cross-tenant read. The next step is PostgreSQL row-level security as a second line of defence, so the database refuses the query even when the ORM would have allowed it.
+
+**Event delivery is at-least-once, and each handler carries the idempotency burden.** A retry or a replay after a worker restart delivers the same event twice, and every handler has to recognise that independently — a duplicate-workflow bug from exactly this cause is fixed and regression-tested. Correctness should not depend on each handler author remembering: dispatch-level deduplication on `(event_id, handler)` would make it structural.
+
+**`recover_pending_events` is implemented but never scheduled.** A `celery_beat` service runs in the compose stack, but no `beat_schedule` is registered, so the task that re-dispatches events stranded in `PENDING` — a worker dying between commit and dispatch — does not currently fire. It needs a schedule entry and an alert on pending-event depth.
+
+**Throttling is configured more thoroughly than it is applied.** `FinancialWriteThrottle` and a `financial_write` rate exist, but `DEFAULT_THROTTLE_CLASSES` is empty and only the two auth token endpoints are actually throttled. Disbursement and repayment are the endpoints that most need it.
+
+**Redis Streams was chosen over Kafka.** Right call at this size, and the consumer boundary is deliberately narrow to keep the swap cheap — but there is no long retention and no partition-ordered replay, so an event dropped past the stream trim horizon is gone.
+
+**Chapa is the only implemented payment gateway.** The `PaymentGateway` protocol exists so a second is additive rather than invasive. That claim is unproven until a second one exists.
+
+**Reports are computed on read.** The trial balance aggregates the entire ledger on every request. That is correct and fast at demo volume, and will not hold past a few million entries — period-close snapshots and materialised account balances are the standard answer.
